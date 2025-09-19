@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Trash2, Edit3 } from "lucide-react";
 import EditTransactionModal from "./EditTransactionModal";
 import { updateTransaction } from "../services/api";
@@ -6,6 +6,7 @@ import { updateTransaction } from "../services/api";
 export default function TransactionList({ transactions = [], onDelete }) {
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [searchTerm, setSearchTerm] = useState(""); // state search
 
   // Xử lý update transaction
   const handleUpdate = async (data) => {
@@ -26,11 +27,31 @@ export default function TransactionList({ transactions = [], onDelete }) {
     }
   };
 
+  // Lọc transactions dựa trên searchTerm
+  const filteredTransactions = useMemo(() => {
+    return transactions.filter((t) => {
+      const term = searchTerm.toLowerCase();
+      return (
+        (t.description && t.description.toLowerCase().includes(term)) ||
+        (t.category && t.category.toLowerCase().includes(term))
+      );
+    });
+  }, [transactions, searchTerm]);
+
   return (
     <div className="bg-white shadow-md rounded-xl p-4">
       <h3 className="text-lg font-semibold mb-4">Transactions</h3>
 
-      {transactions.length === 0 ? (
+      {/* Input search */}
+      <input
+        type="text"
+        placeholder="Search by description or category..."
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        className="w-full mb-4 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+      />
+
+      {filteredTransactions.length === 0 ? (
         <div className="text-gray-500 text-sm">No transactions</div>
       ) : (
         <div className="overflow-x-auto">
@@ -45,7 +66,7 @@ export default function TransactionList({ transactions = [], onDelete }) {
               </tr>
             </thead>
             <tbody>
-              {transactions.map((t) => (
+              {filteredTransactions.map((t) => (
                 <tr
                   key={t._id || t.id}
                   className="border-b last:border-none hover:bg-gray-50"

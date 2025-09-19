@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import TransactionForm from "../components/TransactionForm";
 import TransactionList from "../components/TransactionList";
 import ChartSummary from "../components/ChartSumary";
+import Top5Transactions from "../components/Top5Transactions";
 import {
   getTransactions,
   createTransaction,
@@ -44,23 +45,21 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-     
-
-      {/* Content */}
       <div className="max-w-6xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-blue-700 mb-8 text-center">
-           Dashboard
+          Dashboard
         </h1>
 
-        {/* Grid layout */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Left side: Form + List */}
+          {/* Left side: Form + Top5 + List */}
           <div className="space-y-6">
             {/* Transaction Form */}
             <div className="bg-white p-5 rounded-lg shadow">
               <h2 className="text-xl font-semibold mb-4">Add Transaction</h2>
               <TransactionForm onAdd={handleAdd} />
             </div>
+
+            {/* Top 5 Transactions */}
 
             {/* Transaction List */}
             <div className="bg-white p-5 rounded-lg shadow">
@@ -75,7 +74,9 @@ export default function Dashboard() {
           {/* Right side: Chart */}
           <div className="lg:col-span-2 bg-white p-5 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Summary Chart</h2>
+            <Top5Transactions transactions={transactions} />
             <ChartSummary transactions={transactions} />
+            
           </div>
         </div>
       </div>
