@@ -1,7 +1,31 @@
-import React from "react";
-import { Trash2 } from "lucide-react"; // icon delete
+import React, { useState } from "react";
+import { Trash2, Edit3 } from "lucide-react";
+import EditTransactionModal from "./EditTransactionModal";
+import { updateTransaction } from "../services/api";
 
 export default function TransactionList({ transactions = [], onDelete }) {
+  const [editing, setEditing] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  // Xử lý update transaction
+  const handleUpdate = async (data) => {
+    if (!editing) return;
+    setLoading(true);
+    try {
+      const res = await updateTransaction(editing._id || editing.id, data);
+      const index = transactions.findIndex((t) => t._id === res.data._id);
+      if (index !== -1) {
+        transactions[index] = res.data;
+      }
+      setEditing(null);
+    } catch (err) {
+      console.error(err);
+      alert("Update failed");
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div className="bg-white shadow-md rounded-xl p-4">
       <h3 className="text-lg font-semibold mb-4">Transactions</h3>
@@ -27,22 +51,22 @@ export default function TransactionList({ transactions = [], onDelete }) {
                   className="border-b last:border-none hover:bg-gray-50"
                 >
                   <td className="px-4 py-2">{t.description}</td>
-                  <td className="px-4 py-2 text-gray-600">
-                    {t.category || "-"}
-                  </td>
+                  <td className="px-4 py-2 text-gray-600">{t.category || "-"}</td>
                   <td
                     className={`px-4 py-2 font-medium ${
-                      t.type === "income"
-                        ? "text-green-600"
-                        : "text-red-500"
+                      t.type === "income" ? "text-green-600" : "text-red-500"
                     }`}
                   >
                     {t.type}
                   </td>
-                  <td className="px-4 py-2 font-semibold">
-                    {t.amount.toLocaleString()} ₫
-                  </td>
-                  <td className="px-4 py-2 text-center">
+                  <td className="px-4 py-2 font-semibold">{t.amount.toLocaleString()} ₫</td>
+                  <td className="px-4 py-2 text-center flex justify-center gap-2">
+                    <button
+                      onClick={() => setEditing(t)}
+                      className="text-blue-500 hover:text-blue-700 transition"
+                    >
+                      <Edit3 size={18} />
+                    </button>
                     <button
                       onClick={() => onDelete && onDelete(t._id || t.id)}
                       className="text-red-500 hover:text-red-700 transition"
@@ -55,6 +79,16 @@ export default function TransactionList({ transactions = [], onDelete }) {
             </tbody>
           </table>
         </div>
+      )}
+
+      {/* Gọi modal edit */}
+      {editing && (
+        <EditTransactionModal
+          transaction={editing}
+          onClose={() => setEditing(null)}
+          onSubmit={handleUpdate}
+          loading={loading}
+        />
       )}
     </div>
   );

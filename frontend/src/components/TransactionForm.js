@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { toast } from "react-toastify";
 
 export default function TransactionForm({ onAdd }) {
   const [form, setForm] = useState({
@@ -11,9 +12,14 @@ export default function TransactionForm({ onAdd }) {
   const submit = (e) => {
     e.preventDefault();
     if (!form.description || !form.amount)
-      return alert("Nhập description và amount");
+      return toast.error("Please enter description and amount");
+
     const payload = { ...form, amount: Number(form.amount) };
-    if (onAdd) onAdd(payload);
+    if (onAdd) {
+      onAdd(payload);
+      toast.success("Transaction added successfully!");
+    }
+
     setForm({ description: "", amount: "", type: "expense", category: "" });
   };
 

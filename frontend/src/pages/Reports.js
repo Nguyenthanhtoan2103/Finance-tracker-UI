@@ -7,16 +7,21 @@ import {
 
 export default function Reports() {
   const [summary, setSummary] = useState(null);
+  const [loading, setLoading] = useState(true); // loading state riêng
 
   useEffect(() => {
-    (async () => {
+    const fetchSummary = async () => {
       try {
         const res = await getReportSummary();
         setSummary(res.data);
       } catch (err) {
-        console.error(err);
+        console.error("Failed to fetch report summary:", err);
+      } finally {
+        setLoading(false);
       }
-    })();
+    };
+
+    fetchSummary();
   }, []);
 
   const downloadFile = async (type) => {
@@ -31,21 +36,25 @@ export default function Reports() {
       a.click();
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error(err);
+      console.error("Download failed:", err);
       alert("Download failed");
     }
   };
 
+  // Tính balance nếu summary có dữ liệu
+  const balance = summary ? summary.income - summary.expense : 0;
+
   return (
     <div className="min-h-screen bg-gray-50">
-
       <div className="max-w-5xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-blue-700 mb-8 text-center">
           📑 Reports
         </h1>
 
         <div className="bg-white p-6 rounded-lg shadow">
-          {summary ? (
+          {loading ? (
+            <p className="text-gray-500">Loading...</p>
+          ) : summary ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
               <div className="bg-green-50 border-l-4 border-green-500 p-4 rounded">
                 <h3 className="text-lg font-medium text-green-700">
@@ -68,12 +77,12 @@ export default function Reports() {
               <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded">
                 <h3 className="text-lg font-medium text-blue-700">Balance</h3>
                 <p className="text-2xl font-bold text-blue-800">
-                  ${summary.balance}
+                  ${balance}
                 </p>
               </div>
             </div>
           ) : (
-            <p className="text-gray-500">Loading...</p>
+            <p className="text-red-500">No data available</p>
           )}
 
           <div className="flex flex-wrap gap-4">
