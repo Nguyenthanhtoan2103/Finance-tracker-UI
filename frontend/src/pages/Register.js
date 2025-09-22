@@ -1,14 +1,37 @@
 import React, { useState } from "react";
 import { registerUser } from "../services/api";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
 export default function Register() {
-  const [form, setForm] = useState({ name: "", email: "", password: "" });
+  const [form, setForm] = useState({ username: "", email: "", password: "" });
   const navigate = useNavigate();
+
+  const validateEmail = (email) => {
+    // Regex check email
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+  };
+
+  const validatePassword = (password) => {
+    // ít nhất 6 ký tự, có 1 chữ và 1 số
+    return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(password);
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    if (!validateEmail(form.email)) {
+      toast.error("Invalid email format.");
+      return;
+    }
+
+    if (!validatePassword(form.password)) {
+      toast.error(
+        "Password must be at least 6 characters and include letters & numbers."
+      );
+      return;
+    }
+
     try {
       await registerUser(form);
       toast.success("Register successful! Please login.");
@@ -31,8 +54,8 @@ export default function Register() {
           <input
             type="text"
             placeholder="Name"
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
+            value={form.username}
+            onChange={(e) => setForm({ ...form, username: e.target.value })}
             className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
             required
           />
@@ -63,12 +86,9 @@ export default function Register() {
         {/* Extra */}
         <p className="text-sm text-gray-600 mt-4 text-center">
           Already have an account?{" "}
-          <a
-            href="/login"
-            className="text-green-500 hover:underline font-medium"
-          >
+          <Link to="/login" className="text-green-500 hover:underline font-medium">
             Login
-          </a>
+          </Link>
         </p>
       </div>
     </div>

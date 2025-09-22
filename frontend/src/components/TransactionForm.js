@@ -1,24 +1,45 @@
 import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import { suggestCategory } from "../utils/categorySuggester";
 
 export default function TransactionForm({ onAdd }) {
-  const [note, setNote] = useState("");
+  const [description, setDescription] = useState("");
   const [amount, setAmount] = useState("");
   const [type, setType] = useState("expense");
   const [category, setCategory] = useState("");
+  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  const [payment, setPayment] = useState("cash");
 
-  // Khi note thay đổi, gợi ý category
+  // Gợi ý category dựa trên note
   useEffect(() => {
-    const suggested = suggestCategory(note);
+    const suggested = suggestCategory(description);
     setCategory(suggested);
-  }, [note]);
+  }, [description]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    onAdd({ note, amount: Number(amount), type, category });
-    setNote("");
-    setAmount("");
-    setCategory("");
+    try {
+      await onAdd({
+        description,
+        amount: Number(amount),
+        type,
+        category,
+        date,
+        payment,
+      });
+      toast.success("Transaction added successfully!");
+
+      // Reset form
+      setDescription("");
+      setAmount("");
+      setCategory("");
+      setDate(new Date().toISOString().slice(0, 10));
+      setPayment("cash");
+      setType("expense");
+    } catch (err) {
+      toast.error("Failed to add transaction!");
+    }
   };
 
   return (
@@ -26,17 +47,26 @@ export default function TransactionForm({ onAdd }) {
       <input
         type="text"
         placeholder="Description"
-        value={note}
-        onChange={(e) => setNote(e.target.value)}
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
         className="w-full p-2 border rounded"
+        required
       />
+
       <input
-        type="number"
-        placeholder="Amount"
-        value={amount}
-        onChange={(e) => setAmount(e.target.value)}
-        className="w-full p-2 border rounded"
-      />
+  type="number"
+  placeholder="Amount"
+  value={amount}
+  onChange={(e) => {
+    const val = e.target.value;
+    if (val >= 0) setAmount(val); 
+  }}
+  className="w-full p-2 border rounded"
+  min="0"
+  step="0.01"
+  required
+/>
+
       <select
         value={type}
         onChange={(e) => setType(e.target.value)}
@@ -45,6 +75,7 @@ export default function TransactionForm({ onAdd }) {
         <option value="expense">Expense</option>
         <option value="income">Income</option>
       </select>
+
       <input
         type="text"
         value={category}
@@ -52,7 +83,29 @@ export default function TransactionForm({ onAdd }) {
         readOnly
         className="w-full p-2 border rounded bg-gray-100"
       />
-      <button type="submit" className="px-4 py-2 bg-blue-500 text-white rounded">
+
+      <input
+        type="date"
+        value={date}
+        onChange={(e) => setDate(e.target.value)}
+        className="w-full p-2 border rounded"
+      />
+
+      <select
+        value={payment}
+        onChange={(e) => setPayment(e.target.value)}
+        className="w-full p-2 border rounded"
+      >
+        <option value="cash">Cash</option>
+        <option value="credit">Credit Card</option>
+        <option value="bank">Bank Transfer</option>
+        <option value="ewallet">E-Wallet</option>
+      </select>
+
+      <button
+        type="submit"
+        className="px-4 py-2 bg-blue-500 text-white rounded"
+      >
         Add Transaction
       </button>
     </form>

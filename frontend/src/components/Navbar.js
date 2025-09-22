@@ -8,9 +8,7 @@ export default function Navbar() {
 
   useEffect(() => {
     const storedUser = localStorage.getItem("username");
-    if (storedUser) {
-      setUsername(storedUser);
-    }
+    if (storedUser) setUsername(storedUser);
   }, []);
 
   const handleLogout = () => {
@@ -23,6 +21,7 @@ export default function Navbar() {
   const links = [
     { path: "/", label: "Dashboard" },
     { path: "/reports", label: "Reports" },
+    { path: "/budgets", label: "Budgets" }, 
   ];
 
   return (

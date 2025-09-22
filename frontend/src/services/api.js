@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://localhost:5000/api", 
+  baseURL: "http://www.ftracker.site/api", 
 });
 
 API.interceptors.request.use((config) => {
@@ -29,3 +29,7 @@ export const downloadReportPDF = () =>
   API.get("/reports/pdf", { responseType: "blob" });
 export const downloadReportExcel = () =>
   API.get("/reports/excel", { responseType: "blob" });
+
+// Budgets
+export const getBudgets = () => API.get("/budgets");
+export const setBudget = (data) => API.post("/budgets", data);

@@ -1,47 +1,119 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { Trash2, Edit3 } from "lucide-react";
+import { toast } from "react-toastify";
 import EditTransactionModal from "./EditTransactionModal";
 import { updateTransaction } from "../services/api";
+import { io } from "socket.io-client";
 
-export default function TransactionList({ transactions = [], onDelete }) {
+const socket = io("http://localhost:5000", { transports: ["websocket"] });
+
+export default function TransactionList({ transactions = [], onDelete, onRefresh }) {
+  const [localTransactions, setLocalTransactions] = useState(transactions);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [searchTerm, setSearchTerm] = useState(""); // state search
+  const [searchTerm, setSearchTerm] = useState("");
 
-  // Xử lý update transaction
+  // ✅ Sync props -> state
+  useEffect(() => {
+    setLocalTransactions(transactions);
+  }, [transactions]);
+
+  // ✅ Socket.IO real-time
+  useEffect(() => {
+    const userId = localStorage.getItem("userId");
+    if (!userId) return;
+
+    socket.on(`transaction:${userId}`, (msg) => {
+      console.log("Realtime update:", msg);
+
+      if (msg.action === "created") {
+        setLocalTransactions((prev) => [msg.data, ...prev]);
+        toast.info("New transaction added!");
+      }
+      if (msg.action === "updated") {
+        setLocalTransactions((prev) =>
+          prev.map((t) => (t._id === msg.data._id ? msg.data : t))
+        );
+        toast.info("Transaction updated!");
+      }
+      if (msg.action === "deleted") {
+        setLocalTransactions((prev) =>
+          prev.filter((t) => t._id !== msg.data._id)
+        );
+        toast.warn("Transaction deleted!");
+      }
+    });
+
+    return () => {
+      socket.off(`transaction:${userId}`);
+    };
+  }, []);
+
+  // ✅ Update transaction
   const handleUpdate = async (data) => {
     if (!editing) return;
     setLoading(true);
     try {
-      const res = await updateTransaction(editing._id || editing.id, data);
-      const index = transactions.findIndex((t) => t._id === res.data._id);
-      if (index !== -1) {
-        transactions[index] = res.data;
-      }
+      await updateTransaction(editing._id || editing.id, data);
+      toast.success("Transaction updated successfully!");
       setEditing(null);
     } catch (err) {
       console.error(err);
-      alert("Update failed");
+      toast.error("Failed to update transaction");
     } finally {
       setLoading(false);
     }
   };
 
-  // Lọc transactions dựa trên searchTerm
+  // ✅ Delete với confirm Toast
+  const handleDelete = (t) => {
+    toast(
+      ({ closeToast }) => (
+        <div className="flex flex-col">
+          <span>
+            Are you sure <b>{t.description || "transaction"}</b>?
+          </span>
+          <div className="mt-2 flex gap-2">
+            <button
+              onClick={async () => {
+                try {
+                  await onDelete(t._id || t.id);
+                  toast.success("Transaction deleted!");
+                } catch (err) {
+                  toast.error("Failed to delete");
+                }
+                closeToast();
+              }}
+              className="bg-red-500 text-white px-3 py-1 rounded"
+            >
+              Delete
+            </button>
+            <button
+              onClick={closeToast}
+              className="bg-gray-300 px-3 py-1 rounded"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      ),
+      { autoClose: false }
+    );
+  };
+
+  // ✅ Lọc transaction theo search
   const filteredTransactions = useMemo(() => {
-    return transactions.filter((t) => {
+    return localTransactions.filter((t) => {
       const term = searchTerm.toLowerCase();
       return (
         (t.description && t.description.toLowerCase().includes(term)) ||
         (t.category && t.category.toLowerCase().includes(term))
       );
     });
-  }, [transactions, searchTerm]);
+  }, [localTransactions, searchTerm]);
 
   return (
     <div className="bg-white shadow-md rounded-xl p-4">
-      <h3 className="text-lg font-semibold mb-4">Transactions</h3>
-
       {/* Input search */}
       <input
         type="text"
@@ -62,6 +134,8 @@ export default function TransactionList({ transactions = [], onDelete }) {
                 <th className="px-4 py-2 text-left">Category</th>
                 <th className="px-4 py-2 text-left">Type</th>
                 <th className="px-4 py-2 text-left">Amount</th>
+                <th className="px-4 py-2 text-left">Payment</th>
+                <th className="px-4 py-2 text-left">Date</th>
                 <th className="px-4 py-2 text-center">Action</th>
               </tr>
             </thead>
@@ -80,7 +154,13 @@ export default function TransactionList({ transactions = [], onDelete }) {
                   >
                     {t.type}
                   </td>
-                  <td className="px-4 py-2 font-semibold">{t.amount.toLocaleString()} ₫</td>
+                  <td className="px-4 py-2 font-semibold">
+                    {t.amount.toLocaleString()} ₫
+                  </td>
+                  <td className="px-4 py-2">{t.payment || "-"}</td>
+                  <td className="px-4 py-2">
+                    {t.date ? new Date(t.date).toLocaleDateString() : "-"}
+                  </td>
                   <td className="px-4 py-2 text-center flex justify-center gap-2">
                     <button
                       onClick={() => setEditing(t)}
@@ -89,7 +169,7 @@ export default function TransactionList({ transactions = [], onDelete }) {
                       <Edit3 size={18} />
                     </button>
                     <button
-                      onClick={() => onDelete && onDelete(t._id || t.id)}
+                      onClick={() => handleDelete(t)}
                       className="text-red-500 hover:text-red-700 transition"
                     >
                       <Trash2 size={18} />
@@ -102,7 +182,7 @@ export default function TransactionList({ transactions = [], onDelete }) {
         </div>
       )}
 
-      {/* Gọi modal edit */}
+      {/* Modal edit */}
       {editing && (
         <EditTransactionModal
           transaction={editing}

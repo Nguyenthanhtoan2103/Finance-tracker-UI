@@ -73,7 +73,6 @@ export default function Dashboard() {
 
           {/* Right side: Chart */}
           <div className="lg:col-span-2 bg-white p-5 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Summary Chart</h2>
             <Top5Transactions transactions={transactions} />
             <ChartSummary transactions={transactions} />
             
