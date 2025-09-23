@@ -27,7 +27,7 @@ export default function Login() {
     if (token) {
       handleLoginSuccess(token, username || "GoogleUser");
     }
-  }, [location]);
+  }, [location, handleLoginSuccess]);
 
   // Validate email
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

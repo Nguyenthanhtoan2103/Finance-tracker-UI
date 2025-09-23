@@ -1,0 +1,9 @@
+version: "3.9"
+
+services:
+  frontend:
+    build: .
+    image: finance-tracker-frontend:latest
+    ports:
+      - "80:80"
+    restart: always
