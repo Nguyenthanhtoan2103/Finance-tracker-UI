@@ -1,0 +1,56 @@
+# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
+
+name: CI/CD Frontend to Ubuntu
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: 20
+
+      - name: Install & Build
+        run: |
+          cd frontend
+          npm install
+          npm run build
+
+      - name: Build Docker image
+        run: |
+          cd frontend
+          docker build -t ghcr.io/${{ github.repository_owner }}/frontend:latest .
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push Docker image
+        run: docker push ghcr.io/${{ github.repository_owner }}/frontend:latest
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
+          port: 22
+          script: |
+            echo "Pull latest frontend image"
+            docker pull ghcr.io/${{ github.repository_owner }}/frontend:latest
+            echo "Stop old container if exists"
+            docker rm -f frontend || true
+            echo "Run new container"
+            docker run -d --name frontend -p 80:80 ghcr.io/${{ github.repository_owner }}/frontend:latest
+            echo "Frontend deployed!"
+
