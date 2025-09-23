@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://www.ftracker.site:5000/api", 
+  baseURL: "http://www.ftracker.site/api", 
 });
 
 API.interceptors.request.use((config) => {
