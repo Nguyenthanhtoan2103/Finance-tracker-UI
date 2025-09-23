@@ -1,12 +1,9 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
-
 name: CI/CD Frontend to Ubuntu
 
 on:
   push:
     branches:
-      - main  
+      - main
 
 jobs:
   build-and-deploy:
@@ -42,10 +39,10 @@ jobs:
       # 5. Build và Push Docker image lên GHCR
       - name: Build and Push Docker image
         run: |
-          IMAGE=ghcr.io/${{ github.repository_owner }}/finance-tracker-ui-frontend
-          echo "🚀 Building Docker image: $IMAGE"
-          docker build -t $IMAGE ./frontend
-          docker push $IMAGE
+          FULL_IMAGE=$(echo "ghcr.io/${{ github.repository_owner }}/$(echo ${{ github.repository }} | cut -d'/' -f2)" | tr '[:upper:]' '[:lower:]')
+          echo "🚀 Docker image: $FULL_IMAGE"
+          docker build -t $FULL_IMAGE ./frontend
+          docker push $FULL_IMAGE
 
       # 6. Deploy lên server via SSH
       - name: Deploy to server
@@ -54,21 +51,19 @@ jobs:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_PRIVATE_KEY }}
-          port: 22
           script: |
-            IMAGE=ghcr.io/${{ github.repository_owner }}/finance-tracker-ui-frontend
-            echo "🚀 Deploying Docker image: $IMAGE"
+            FULL_IMAGE=$(echo "ghcr.io/${{ github.repository_owner }}/$(echo ${{ github.repository }} | cut -d'/' -f2)" | tr '[:upper:]' '[:lower:]')
+            echo "🚀 Deploy Docker image: $FULL_IMAGE"
 
             # Login GHCR trên server
             echo "${{ secrets.GHCR_PAT }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
             # Pull image mới nhất
-            docker pull $IMAGE
+            docker pull $FULL_IMAGE
 
-            # Stop container cũ nếu có
+            # Stop & remove container cũ nếu có
             docker stop frontend || true
             docker rm frontend || true
 
             # Run container mới
-            docker run -d --name frontend -p 80:80 $IMAGE
-
+            docker run -d --name frontend -p 80:80 $FULL_IMAGE
