@@ -21,7 +21,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
 
-      # 3. Log in GHCR trên GitHub Actions runner
+      # 3. Log in GHCR
       - name: Log in to GHCR
         uses: docker/login-action@v2
         with:
@@ -29,33 +29,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GHCR_PAT }}
 
-      # 4. Kiểm tra Dockerfile tồn tại
-      - name: Check Dockerfile
-        run: |
-          echo "Current directory: $(pwd)"
-          ls -l ./frontend
-          if [ ! -f ./frontend/Dockerfile ]; then
-            echo "Dockerfile not found in ./frontend"
-            exit 1
-          fi
-
-      # 5. Build và Push Docker image lên GHCR
+      # 4. Build & Push Docker image
       - name: Build and Push Docker image
         run: |
-          FULL_IMAGE=$(echo "ghcr.io/${{ github.repository_owner }}/$(echo ${{ github.repository }} | cut -d'/' -f2)" | tr '[:upper:]' '[:lower:]')
+          FULL_IMAGE=$(echo "ghcr.io/${{ github.repository_owner }}/$(echo ${{ github.repository }} | cut -d'/' -f2)-frontend" | tr '[:upper:]' '[:lower:]')
           echo "Docker image: $FULL_IMAGE"
+
           docker build -t $FULL_IMAGE ./frontend
           docker push $FULL_IMAGE
 
-      # 6. Deploy lên server via SSH
+          echo "FULL_IMAGE=$FULL_IMAGE" >> $GITHUB_ENV
+
+      # 5. Deploy to server via SSH
       - name: Deploy to server
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
           username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_PRIVATE_KEY }}   # <-- sử dụng secret đúng tên
+          key: ${{ secrets.VPS_PRIVATE_KEY }}
           script: |
-            FULL_IMAGE=$(echo "ghcr.io/${{ github.repository_owner }}/$(echo ${{ github.repository }} | cut -d'/' -f2)" | tr '[:upper:]' '[:lower:]')
             echo "Deploy Docker image: $FULL_IMAGE"
 
             # Login GHCR trên server
@@ -70,4 +62,5 @@ jobs:
 
             # Run container mới
             docker run -d --name frontend -p 80:80 $FULL_IMAGE
+
 
