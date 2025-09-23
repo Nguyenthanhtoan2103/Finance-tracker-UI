@@ -21,7 +21,7 @@ export default function Navbar() {
   const links = [
     { path: "/", label: "Dashboard" },
     { path: "/reports", label: "Reports" },
-    { path: "/budgets", label: "Budgets" }, 
+    { path: "/budgets", label: "Budgets" },
   ];
 
   return (
@@ -37,12 +37,15 @@ export default function Navbar() {
           {links.map((link) => (
             <Link
               key={link.path}
-              to={link.path}
+              to={username ? link.path : "#"} // disable khi chưa login
+              onClick={(e) => {
+                if (!username) e.preventDefault(); // chặn click
+              }}
               className={`px-3 py-2 rounded-lg transition-colors duration-200 ${
                 location.pathname === link.path
                   ? "bg-white text-blue-600 font-semibold shadow"
                   : "hover:bg-blue-500"
-              }`}
+              } ${!username ? "opacity-50 cursor-not-allowed" : ""}`}
             >
               {link.label}
             </Link>
