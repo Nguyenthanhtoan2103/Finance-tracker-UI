@@ -44,7 +44,7 @@ jobs:
         uses: appleboy/ssh-action@v0.1.7
         with:
           host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
+          username: Nguyenthanhtoan2103
           key: ${{ secrets.PRIVATE_SSH_KEY }}
           script: |
             # Pull image mới nhất từ GHCR
