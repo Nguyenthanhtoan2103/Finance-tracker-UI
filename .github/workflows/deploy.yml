@@ -1,7 +1,7 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
-name: CI/CD Frontend to ubuntu
+name: CI/CD Frontend to Ubuntu
 
 on:
   push:
@@ -26,35 +26,38 @@ jobs:
         uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: Nguyenthanhtoan2103
-          password: ${{ secrets.GHCR_PAT }}
+          username: Nguyenthanhtoan2103           # GitHub username
+          password: ${{ secrets.GHCR_PAT }}      # Personal Access Token
 
-      # 4. Build Docker image
+      # 4. Build Docker image (lowercase image name)
       - name: Build Docker image
         run: |
-          docker build -t ghcr.io/${{ github.repository_owner }}/frontend:latest .
+          IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+          docker build -t ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME:latest .
 
       # 5. Push Docker image lên GHCR
       - name: Push Docker image
         run: |
-          docker push ghcr.io/${{ github.repository_owner }}/frontend:latest
+          IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
+          docker push ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME:latest
 
       # 6. Deploy lên server via SSH
       - name: Deploy to server
         uses: appleboy/ssh-action@v0.1.7
         with:
-          host: ${{ secrets.VPS_HOST }}
-          username: Nguyenthanhtoan2103
-          key: ${{ secrets.PRIVATE_SSH_KEY }}
+          host: ${{ secrets.VPS_HOST }}          # IP server
+          username: ${{ secrets.VPS_USER }}      # user trên server
+          key: ${{ secrets.PRIVATE_SSH_KEY }}    # private SSH key
           script: |
+            IMAGE_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
             # Pull image mới nhất từ GHCR
-            docker pull ghcr.io/${{ github.repository_owner }}/frontend:latest
+            docker pull ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME:latest
 
             # Stop container cũ nếu có
             docker stop frontend || true
             docker rm frontend || true
 
             # Run container mới
-            docker run -d --name frontend -p 80:80 ghcr.io/${{ github.repository_owner }}/frontend:latest
+            docker run -d --name frontend -p 80:80 ghcr.io/${{ github.repository_owner }}/$IMAGE_NAME:latest
 
 
