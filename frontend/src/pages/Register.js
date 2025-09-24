@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { registerUser } from "../services/api";
 import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
+import { FaEye, FaEyeSlash } from "react-icons/fa"; // icon con mắt
 
 export default function Register() {
   const [form, setForm] = useState({
@@ -9,6 +10,8 @@ export default function Register() {
     email: "",
     password: ""
   });
+
+  const [showPassword, setShowPassword] = useState(false); // trạng thái hiển thị password
 
   const navigate = useNavigate();
 
@@ -19,7 +22,6 @@ export default function Register() {
 
   const validatePassword = (password) => {
     console.log("Validating password:", password);
-    // ✅ Chấp nhận ký tự đặc biệt, ít nhất 6 ký tự, phải có chữ và số
     return /^(?=.*[A-Za-z])(?=.*\d).{6,}$/.test(password);
   };
 
@@ -89,17 +91,25 @@ export default function Register() {
             required
           />
 
-          <input
-            type="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={(e) => {
-              console.log("Password changed:", e.target.value);
-              setForm({ ...form, password: e.target.value });
-            }}
-            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-            required
-          />
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={form.password}
+              onChange={(e) => {
+                console.log("Password changed:", e.target.value);
+                setForm({ ...form, password: e.target.value });
+              }}
+              className="border rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-green-400"
+              required
+            />
+            <span
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </span>
+          </div>
 
           <button
             type="submit"

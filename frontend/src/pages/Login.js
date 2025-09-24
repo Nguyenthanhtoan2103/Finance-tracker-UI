@@ -1,25 +1,26 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { loginUser } from "../services/api";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
+import { FaEye, FaEyeSlash } from "react-icons/fa"; // ✅ Import icon
 
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
+  const [showPassword, setShowPassword] = useState(false); // ✅ Trạng thái show/hide mật khẩu
   const apiUrl = process.env.REACT_APP_API_URL;
 
   const location = useLocation();
   const navigate = useNavigate();
 
-  // ✅ Helper chung cho cả login thường & Google
   const handleLoginSuccess = (token, username) => {
     localStorage.setItem("token", token);
     localStorage.setItem("username", username);
+    localStorage.setItem("isLoggedIn", "true");
     toast.success("Login successful!");
-    navigate("/"); // quay về trang Home
+    navigate("/");
   };
 
-  // ✅ Kiểm tra nếu Google redirect về với token
-  useEffect(() => {
+  const checkGoogleRedirect = useCallback(() => {
     const params = new URLSearchParams(location.search);
     const token = params.get("token");
     const username = params.get("username");
@@ -27,15 +28,15 @@ export default function Login() {
     if (token) {
       handleLoginSuccess(token, username || "GoogleUser");
     }
-  }, [location, handleLoginSuccess]);
+  }, [location.search]);
 
-  // Validate email
+  useEffect(() => {
+    checkGoogleRedirect();
+  }, [checkGoogleRedirect]);
+
   const validateEmail = (email) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-
-  // Validate password >= 6 ký tự
   const validatePassword = (password) => password.length >= 6;
 
-  // Submit login thường (email + password)
   const handleSubmit = async (e) => {
     e.preventDefault();
 
@@ -52,11 +53,11 @@ export default function Login() {
       const res = await loginUser(form);
       handleLoginSuccess(res.data.token, res.data.username);
     } catch (err) {
+      console.error(err);
       toast.error("Login failed. Check email/password.");
     }
   };
 
-  // Login với Google OAuth2
   const handleGoogleLogin = () => {
     window.location.href = `${apiUrl}/auth/google`;
   };
@@ -64,12 +65,11 @@ export default function Login() {
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-blue-100 to-blue-300">
       <div className="bg-white shadow-lg rounded-lg w-full max-w-md p-8">
-        {/* Title */}
         <h2 className="text-2xl font-bold text-center text-blue-600 mb-6">
           Welcome Back 👋
         </h2>
 
-        {/* Form login thường */}
+        {/* Form login */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             type="email"
@@ -79,14 +79,24 @@ export default function Login() {
             className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
             required
           />
-          <input
-            type="password"
-            placeholder="Password"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-            required
-          />
+
+          <div className="relative">
+            <input
+              type={showPassword ? "text" : "password"}
+              placeholder="Password"
+              value={form.password}
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              className="border rounded px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
+              required
+            />
+            <span
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 cursor-pointer text-gray-500"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? <FaEyeSlash /> : <FaEye />}
+            </span>
+          </div>
+
           <button
             type="submit"
             className="bg-blue-500 hover:bg-blue-600 text-white py-2 rounded font-semibold transition"
@@ -95,7 +105,7 @@ export default function Login() {
           </button>
         </form>
 
-        {/* Nút login Google */}
+        {/* Google Login */}
         <button
           onClick={handleGoogleLogin}
           className="mt-4 w-full flex items-center justify-center gap-2 border py-2 rounded hover:bg-gray-100 transition"
@@ -108,7 +118,7 @@ export default function Login() {
           <span>Login with Google</span>
         </button>
 
-        {/* Link sang Register */}
+        {/* Link to Register */}
         <p className="text-sm text-gray-600 mt-4 text-center">
           Don’t have an account?{" "}
           <Link
