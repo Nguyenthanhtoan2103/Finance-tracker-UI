@@ -3,7 +3,10 @@ version: "3.9"
 services:
   frontend:
     build: .
-    image: finance-tracker-frontend:latest
+    image: ghcr.io/nguyenthanhtoan2103/finance-tracker-ui:latest
+    container_name: frontend
     ports:
       - "80:80"
-    restart: always
+    environment:
+      - REACT_APP_BACKEND_URL=http://www.ftracker.site:5000
+    restart: unless-stopped
