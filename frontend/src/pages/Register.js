@@ -4,28 +4,34 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
 export default function Register() {
+  console.log("Register component rendered");
+
   const [form, setForm] = useState({ username: "", email: "", password: "" });
   const navigate = useNavigate();
 
   const validateEmail = (email) => {
-    // Regex check email
+    console.log("Validating email:", email);
     return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   };
 
   const validatePassword = (password) => {
-    // ít nhất 6 ký tự, có 1 chữ và 1 số
+    console.log("Validating password:", password);
     return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(password);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
 
+    console.log("Form submitted:", form);
+
     if (!validateEmail(form.email)) {
+      console.log("Invalid email format:", form.email);
       toast.error("Invalid email format.");
       return;
     }
 
     if (!validatePassword(form.password)) {
+      console.log("Invalid password format:", form.password);
       toast.error(
         "Password must be at least 6 characters and include letters & numbers."
       );
@@ -33,10 +39,14 @@ export default function Register() {
     }
 
     try {
-      await registerUser(form);
+      console.log("Calling registerUser API with data:", form);
+      const response = await registerUser(form);
+      console.log("API response:", response);
+
       toast.success("Register successful! Please login.");
       navigate("/login");
     } catch (err) {
+      console.error("Register failed:", err);
       toast.error("Register failed. " + err.response?.data?.message);
     }
   };
@@ -55,7 +65,10 @@ export default function Register() {
             type="text"
             placeholder="Name"
             value={form.username}
-            onChange={(e) => setForm({ ...form, username: e.target.value })}
+            onChange={(e) => {
+              console.log("Username changed:", e.target.value);
+              setForm({ ...form, username: e.target.value });
+            }}
             className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
             required
           />
@@ -63,7 +76,10 @@ export default function Register() {
             type="email"
             placeholder="Email"
             value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
+            onChange={(e) => {
+              console.log("Email changed:", e.target.value);
+              setForm({ ...form, email: e.target.value });
+            }}
             className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
             required
           />
@@ -71,7 +87,10 @@ export default function Register() {
             type="password"
             placeholder="Password"
             value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
+            onChange={(e) => {
+              console.log("Password changed:", e.target.value);
+              setForm({ ...form, password: e.target.value });
+            }}
             className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
             required
           />
