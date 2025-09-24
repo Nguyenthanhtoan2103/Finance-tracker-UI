@@ -5,7 +5,10 @@ import EditTransactionModal from "./EditTransactionModal";
 import { updateTransaction } from "../services/api";
 import { io } from "socket.io-client";
 
-const socket = io("http://localhost:5000", { transports: ["websocket"] });
+// ⚡ Kết nối socket
+const socket = io(process.env.REACT_APP_API_URL || "http://localhost:5000", {
+  transports: ["websocket"],
+});
 
 export default function TransactionList({ transactions = [], onDelete, onRefresh }) {
   const [localTransactions, setLocalTransactions] = useState(transactions);
@@ -13,12 +16,12 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // ✅ Sync props -> state
+  // ✅ Đồng bộ prop -> state
   useEffect(() => {
     setLocalTransactions(transactions);
   }, [transactions]);
 
-  // ✅ Socket.IO real-time
+  // ✅ Realtime với Socket.IO
   useEffect(() => {
     const userId = localStorage.getItem("userId");
     if (!userId) return;
@@ -28,19 +31,19 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
 
       if (msg.action === "created") {
         setLocalTransactions((prev) => [msg.data, ...prev]);
-        toast.info("New transaction added!");
+        toast.info("✨ New transaction added!");
       }
       if (msg.action === "updated") {
         setLocalTransactions((prev) =>
           prev.map((t) => (t._id === msg.data._id ? msg.data : t))
         );
-        toast.info("Transaction updated!");
+        toast.success("✅ Transaction updated!");
       }
       if (msg.action === "deleted") {
         setLocalTransactions((prev) =>
           prev.filter((t) => t._id !== msg.data._id)
         );
-        toast.warn("Transaction deleted!");
+        toast.warn("🗑️ Transaction deleted!");
       }
     });
 
@@ -49,7 +52,7 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
     };
   }, []);
 
-  // ✅ Update transaction
+  // ✅ Cập nhật transaction
   const handleUpdate = async (data) => {
     if (!editing) return;
     setLoading(true);
@@ -57,6 +60,7 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
       await updateTransaction(editing._id || editing.id, data);
       toast.success("Transaction updated successfully!");
       setEditing(null);
+      if (onRefresh) onRefresh();
     } catch (err) {
       console.error(err);
       toast.error("Failed to update transaction");
@@ -65,22 +69,23 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
     }
   };
 
-  // ✅ Delete với confirm Toast
+  // ✅ Xoá có confirm Toast
   const handleDelete = (t) => {
     toast(
       ({ closeToast }) => (
         <div className="flex flex-col">
           <span>
-            Are you sure <b>{t.description || "transaction"}</b>?
+            Are you sure to delete <b>{t.description || "transaction"}</b>?
           </span>
           <div className="mt-2 flex gap-2">
             <button
               onClick={async () => {
                 try {
                   await onDelete(t._id || t.id);
-                  toast.success("Transaction deleted!");
+                  toast.success("Deleted successfully!");
                 } catch (err) {
-                  toast.error("Failed to delete");
+                  console.error(err);
+                  toast.error("Delete failed!");
                 }
                 closeToast();
               }}
@@ -107,24 +112,26 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
       const term = searchTerm.toLowerCase();
       return (
         (t.description && t.description.toLowerCase().includes(term)) ||
-        (t.category && t.category.toLowerCase().includes(term))
+        (t.category && t.category.toLowerCase().includes(term)) ||
+        (t.payment && t.payment.toLowerCase().includes(term))
       );
     });
   }, [localTransactions, searchTerm]);
 
   return (
     <div className="bg-white shadow-md rounded-xl p-4">
-      {/* Input search */}
+      {/* 🔍 Search */}
       <input
         type="text"
-        placeholder="Search by description or category..."
+        placeholder="Search by description, category, or payment..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
         className="w-full mb-4 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
       />
 
+      {/* Bảng */}
       {filteredTransactions.length === 0 ? (
-        <div className="text-gray-500 text-sm">No transactions</div>
+        <div className="text-gray-500 text-sm">No transactions found</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
@@ -155,11 +162,11 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
                     {t.type}
                   </td>
                   <td className="px-4 py-2 font-semibold">
-                    {t.amount.toLocaleString()} ₫
+                    {t.amount?.toLocaleString("vi-VN")} ₫
                   </td>
                   <td className="px-4 py-2">{t.payment || "-"}</td>
                   <td className="px-4 py-2">
-                    {t.date ? new Date(t.date).toLocaleDateString() : "-"}
+                    {t.date ? new Date(t.date).toLocaleDateString("vi-VN") : "-"}
                   </td>
                   <td className="px-4 py-2 text-center flex justify-center gap-2">
                     <button
