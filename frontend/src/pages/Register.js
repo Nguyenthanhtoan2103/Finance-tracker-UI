@@ -4,9 +4,12 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "react-toastify";
 
 export default function Register() {
-  console.log("Register component rendered");
+  const [form, setForm] = useState({
+    username: "",
+    email: "",
+    password: ""
+  });
 
-  const [form, setForm] = useState({ username: "", email: "", password: "" });
   const navigate = useNavigate();
 
   const validateEmail = (email) => {
@@ -16,12 +19,12 @@ export default function Register() {
 
   const validatePassword = (password) => {
     console.log("Validating password:", password);
-    return /^(?=.*[A-Za-z])(?=.*\d)[A-Za-z\d]{6,}$/.test(password);
+    // ✅ Chấp nhận ký tự đặc biệt, ít nhất 6 ký tự, phải có chữ và số
+    return /^(?=.*[A-Za-z])(?=.*\d).{6,}$/.test(password);
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
     console.log("Form submitted:", form);
 
     if (!validateEmail(form.email)) {
@@ -31,7 +34,7 @@ export default function Register() {
     }
 
     if (!validatePassword(form.password)) {
-      console.log("Invalid password format:", form.password);
+      console.log("Invalid password:", form.password);
       toast.error(
         "Password must be at least 6 characters and include letters & numbers."
       );
@@ -41,25 +44,26 @@ export default function Register() {
     try {
       console.log("Calling registerUser API with data:", form);
       const response = await registerUser(form);
-      console.log("API response:", response);
+      console.log("API response:", response.data);
 
       toast.success("Register successful! Please login.");
       navigate("/login");
     } catch (err) {
       console.error("Register failed:", err);
-      toast.error("Register failed. " + err.response?.data?.message);
+      toast.error(
+        "Register failed. " +
+          (err.response?.data?.message || err.message || "Unknown error")
+      );
     }
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-green-100 to-green-300">
       <div className="bg-white shadow-lg rounded-lg w-full max-w-md p-8">
-        {/* Title */}
         <h2 className="text-2xl font-bold text-center text-green-600 mb-6">
           Create Account ✨
         </h2>
 
-        {/* Form */}
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
           <input
             type="text"
@@ -72,6 +76,7 @@ export default function Register() {
             className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
             required
           />
+
           <input
             type="email"
             placeholder="Email"
@@ -83,6 +88,7 @@ export default function Register() {
             className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
             required
           />
+
           <input
             type="password"
             placeholder="Password"
@@ -94,6 +100,7 @@ export default function Register() {
             className="border rounded px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
             required
           />
+
           <button
             type="submit"
             className="bg-green-500 hover:bg-green-600 text-white py-2 rounded font-semibold transition"
@@ -102,10 +109,12 @@ export default function Register() {
           </button>
         </form>
 
-        {/* Extra */}
         <p className="text-sm text-gray-600 mt-4 text-center">
           Already have an account?{" "}
-          <Link to="/login" className="text-green-500 hover:underline font-medium">
+          <Link
+            to="/login"
+            className="text-green-500 hover:underline font-medium"
+          >
             Login
           </Link>
         </p>
