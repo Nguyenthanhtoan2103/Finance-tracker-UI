@@ -17,7 +17,7 @@ export default function Login() {
     localStorage.setItem("username", username);
     localStorage.setItem("isLoggedIn", "true");
     toast.success("Login successful!");
-    navigate("/");
+    window.location.href = "/";
   };
 
   const checkGoogleRedirect = useCallback(() => {
