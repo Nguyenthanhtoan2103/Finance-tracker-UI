@@ -6,7 +6,7 @@ import { updateTransaction } from "../services/api";
 import { io } from "socket.io-client";
 
 // ⚡ Kết nối socket
-const socket = io(process.env.REACT_APP_API_URL || "http://localhost:5000", {
+const socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:5000", {
   transports: ["websocket"],
 });
 
@@ -37,13 +37,13 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
         setLocalTransactions((prev) =>
           prev.map((t) => (t._id === msg.data._id ? msg.data : t))
         );
-        toast.success("✅ Transaction updated!");
+        toast.success("Transaction updated!");
       }
       if (msg.action === "deleted") {
         setLocalTransactions((prev) =>
           prev.filter((t) => t._id !== msg.data._id)
         );
-        toast.warn("🗑️ Transaction deleted!");
+        toast.warn("Transaction deleted!");
       }
     });
 
