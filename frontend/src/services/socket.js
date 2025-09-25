@@ -35,7 +35,7 @@ export function disconnectSocket() {
 }
 
 // helper: join room explicitly (server should listen "join")
-export function joinRoom(userId) {
+export function joinUserRoom(userId) {
   if (!socket.connected) {
     console.warn("[socket] joinRoom(): socket not connected yet");
     return;
