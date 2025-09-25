@@ -1,28 +1,22 @@
-import React, { useState, useEffect } from "react";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
+import React, { useState, useContext } from "react";
 import axios from "axios";
+import { toast } from "react-toastify";
+import { AuthContext } from "../context/AuthContext";
 import { socket } from "../services/socket";
-import { suggestCategory } from "../utils/categorySuggester";
 
-export default function TransactionForm({ user }) {
+export default function TransactionForm() {
+  const { user } = useContext(AuthContext);
+
   const [form, setForm] = useState({
-    description: "",
     amount: "",
-    type: "expense",   // expense | income
     category: "",
+    type: "expense",
+    description: "",
     date: new Date().toISOString().slice(0, 10),
-    payment: "cash",   // cash | credit | bank | ewallet
+    payment: "cash",
   });
-  const [loading, setLoading] = useState(false);
 
-  // Gợi ý category dựa vào description
-  useEffect(() => {
-    const suggested = suggestCategory(form.description);
-    if (suggested) {
-      setForm((prev) => ({ ...prev, category: suggested }));
-    }
-  }, [form.description]);
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     setForm({
@@ -33,52 +27,41 @@ export default function TransactionForm({ user }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
     if (!user) {
-      console.error("❌ User not found, cannot submit transaction");
-      toast.error("You must be logged in to add a transaction");
+      toast.error("⚠️ You must log in to add a transaction!");
       return;
     }
 
     try {
       setLoading(true);
 
-      const payload = { ...form, user: user._id };
-      console.log("📤 Sending payload to backend:", payload);
-
       const res = await axios.post(
         `${process.env.REACT_APP_API_URL}/transactions`,
-        payload,
+        { ...form, user: user._id },
         { withCredentials: true }
       );
 
-      console.log("✅ Backend response:", res.data);
+      toast.success("✅ Transaction added successfully!");
 
-      // Emit socket event
+      // Emit realtime update
       socket.emit("transaction:new", {
         userId: user._id,
-        data: res.data,
+        transaction: res.data,
       });
-      console.log("📡 Socket emitted transaction:new", {
-        userId: user._id,
-        data: res.data,
-      });
-
-      toast.success("Transaction added successfully!");
 
       // Reset form
       setForm({
-        description: "",
         amount: "",
-        type: "expense",
         category: "",
+        type: "expense",
+        description: "",
         date: new Date().toISOString().slice(0, 10),
         payment: "cash",
       });
     } catch (err) {
-      console.error("❌ Error submitting transaction:", err.response || err);
-      toast.error(
-        err.response?.data?.message || "Failed to add transaction"
-      );
+      console.error(err);
+      toast.error("❌ Failed to add transaction!");
     } finally {
       setLoading(false);
     }
@@ -87,37 +70,35 @@ export default function TransactionForm({ user }) {
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-white shadow-md rounded-lg p-4 space-y-3"
+      className="p-4 bg-white shadow rounded-lg flex flex-col gap-3"
     >
-      <h2 className="text-lg font-bold">Add Transaction</h2>
-
-      <input
-        type="text"
-        name="description"
-        placeholder="Description"
-        value={form.description}
-        onChange={handleChange}
-        className="border p-2 rounded w-full"
-        required
-      />
+      <h2 className="text-lg font-bold">➕ Add Transaction</h2>
 
       <input
         type="number"
         name="amount"
-        placeholder="Amount"
         value={form.amount}
         onChange={handleChange}
-        className="border p-2 rounded w-full"
-        min="0"
-        step="0.01"
+        placeholder="Amount"
         required
+        className="border p-2 rounded"
+      />
+
+      <input
+        type="text"
+        name="category"
+        value={form.category}
+        onChange={handleChange}
+        placeholder="Category (e.g. Food, Transport)"
+        required
+        className="border p-2 rounded"
       />
 
       <select
         name="type"
         value={form.type}
         onChange={handleChange}
-        className="border p-2 rounded w-full"
+        className="border p-2 rounded"
       >
         <option value="expense">Expense</option>
         <option value="income">Income</option>
@@ -125,12 +106,11 @@ export default function TransactionForm({ user }) {
 
       <input
         type="text"
-        name="category"
-        placeholder="Category"
-        value={form.category}
+        name="description"
+        value={form.description}
         onChange={handleChange}
-        className="border p-2 rounded w-full"
-        required
+        placeholder="Description"
+        className="border p-2 rounded"
       />
 
       <input
@@ -138,16 +118,15 @@ export default function TransactionForm({ user }) {
         name="date"
         value={form.date}
         onChange={handleChange}
-        className="border p-2 rounded w-full"
         required
+        className="border p-2 rounded"
       />
 
       <select
         name="payment"
         value={form.payment}
         onChange={handleChange}
-        className="border p-2 rounded w-full"
-        required
+        className="border p-2 rounded"
       >
         <option value="cash">Cash</option>
         <option value="credit">Credit Card</option>
@@ -158,7 +137,7 @@ export default function TransactionForm({ user }) {
       <button
         type="submit"
         disabled={loading}
-        className="bg-blue-500 text-white px-4 py-2 rounded w-full hover:bg-blue-600 disabled:opacity-50"
+        className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 disabled:opacity-50"
       >
         {loading ? "Saving..." : "Add Transaction"}
       </button>
