@@ -2,21 +2,21 @@ import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
-import {socket} from "../services/socket";
+import { socket } from "../services/socket";
 import { suggestCategory } from "../utils/categorySuggester";
 
 export default function TransactionForm({ user }) {
   const [form, setForm] = useState({
     description: "",
     amount: "",
-    type: "expense",
+    type: "expense",   // expense | income
     category: "",
     date: new Date().toISOString().slice(0, 10),
-    payment: "cash",
+    payment: "cash",   // cash | credit | bank | ewallet
   });
   const [loading, setLoading] = useState(false);
 
-  // Gợi ý category tự động
+  // Gợi ý category dựa vào description
   useEffect(() => {
     const suggested = suggestCategory(form.description);
     if (suggested) {
@@ -33,23 +33,39 @@ export default function TransactionForm({ user }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!user) return;
+    if (!user) {
+      console.error("❌ User not found, cannot submit transaction");
+      toast.error("You must be logged in to add a transaction");
+      return;
+    }
 
     try {
       setLoading(true);
 
+      const payload = { ...form, user: user._id };
+      console.log("📤 Sending payload to backend:", payload);
+
       const res = await axios.post(
         `${process.env.REACT_APP_API_URL}/transactions`,
-        { ...form, user: user._id }
+        payload,
+        { withCredentials: true }
       );
 
-      // Emit realtime
+      console.log("✅ Backend response:", res.data);
+
+      // Emit socket event
       socket.emit("transaction:new", {
+        userId: user._id,
+        data: res.data,
+      });
+      console.log("📡 Socket emitted transaction:new", {
         userId: user._id,
         data: res.data,
       });
 
       toast.success("Transaction added successfully!");
+
+      // Reset form
       setForm({
         description: "",
         amount: "",
@@ -59,8 +75,10 @@ export default function TransactionForm({ user }) {
         payment: "cash",
       });
     } catch (err) {
-      console.error(err);
-      toast.error("Failed to add transaction");
+      console.error("❌ Error submitting transaction:", err.response || err);
+      toast.error(
+        err.response?.data?.message || "Failed to add transaction"
+      );
     } finally {
       setLoading(false);
     }
@@ -112,6 +130,7 @@ export default function TransactionForm({ user }) {
         value={form.category}
         onChange={handleChange}
         className="border p-2 rounded w-full"
+        required
       />
 
       <input
@@ -120,6 +139,7 @@ export default function TransactionForm({ user }) {
         value={form.date}
         onChange={handleChange}
         className="border p-2 rounded w-full"
+        required
       />
 
       <select
@@ -127,6 +147,7 @@ export default function TransactionForm({ user }) {
         value={form.payment}
         onChange={handleChange}
         className="border p-2 rounded w-full"
+        required
       >
         <option value="cash">Cash</option>
         <option value="credit">Credit Card</option>
