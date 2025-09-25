@@ -36,59 +36,48 @@ export default function TransactionForm() {
     });
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+const handleSubmit = async (e) => {
+  e.preventDefault();
 
-    if (!isLoggedIn) {
-      toast.error("Please log in to add a transaction!");
-      return;
-    }
+  if (!isLoggedIn) {
+    toast.error("⚠️ Please log in to add a transaction!");
+    return;
+  }
 
-    const userId = localStorage.getItem("userId");
-    if (!userId) {
-      toast.error("User ID not found. Please login again.");
-      return;
-    }
+  try {
+    setLoading(true);
 
-    if (!form.description || !form.amount || !form.category) {
-      toast.error("Please fill in all required fields.");
-      return;
-    }
+    const transactionData = {
+      description: form.description,
+      amount: Number(form.amount),
+      category: form.category,
+      type: form.type,
+      date: form.date,
+      paymentMethod: form.payment
+    };
 
-    try {
-      setLoading(true);
+    const res = await createTransaction(transactionData);
 
-      // Append userId to form
-      const transactionData = {
-        ...form,
-        user: userId,
-      };
+    toast.success("Transaction added successfully!");
 
-      const res = await createTransaction(transactionData);
+    socket.emit("transaction:new", { transaction: res.data });
 
-      toast.success("Transaction added successfully!");
+    setForm({
+      description: "",
+      amount: "",
+      category: "",
+      type: "expense",
+      date: new Date().toISOString().slice(0, 10),
+      payment: "cash"
+    });
+  } catch (err) {
+    console.error(err);
+    toast.error("Failed to add transaction!");
+  } finally {
+    setLoading(false);
+  }
+};
 
-      // Emit realtime update
-      socket.emit("transaction:new", {
-        transaction: res.data,
-      });
-
-      // Reset form
-      setForm({
-        description: "",
-        amount: "",
-        category: "",
-        type: "expense",
-        date: new Date().toISOString().slice(0, 10),
-        paymentMethod: "cash",
-      });
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to add transaction!");
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <form
