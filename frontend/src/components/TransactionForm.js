@@ -49,7 +49,7 @@ export default function TransactionForm() {
 
       const res = await createTransaction(form);
 
-      toast.success("✅ Transaction added successfully!");
+      toast.success("Transaction added successfully!");
 
       // Emit realtime update
       socket.emit("transaction:new", {
@@ -66,7 +66,7 @@ export default function TransactionForm() {
       });
     } catch (err) {
       console.error(err);
-      toast.error("❌ Failed to add transaction!");
+      toast.error("Failed to add transaction!");
     } finally {
       setLoading(false);
     }
@@ -77,8 +77,6 @@ export default function TransactionForm() {
       onSubmit={handleSubmit}
       className="p-4 bg-white shadow rounded-lg flex flex-col gap-3"
     >
-      <h2 className="text-lg font-bold">➕ Add Transaction</h2>
-
       <input
         type="text"
         name="description"
