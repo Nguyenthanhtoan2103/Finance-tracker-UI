@@ -1,15 +1,28 @@
-import React, { useState } from "react";
-import { socket } from "../services/socket";
+import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import axios from "axios";
+import {socket} from "../services/socket";
+import { suggestCategory } from "../utils/categorySuggester";
 
-export default function TransactionForm() {
-  const userId = localStorage.getItem("userId"); // ✅ lấy từ localStorage
+export default function TransactionForm({ user }) {
   const [form, setForm] = useState({
+    description: "",
     amount: "",
-    category: "",
     type: "expense",
+    category: "",
+    date: new Date().toISOString().slice(0, 10),
+    payment: "cash",
   });
   const [loading, setLoading] = useState(false);
+
+  // Gợi ý category tự động
+  useEffect(() => {
+    const suggested = suggestCategory(form.description);
+    if (suggested) {
+      setForm((prev) => ({ ...prev, category: suggested }));
+    }
+  }, [form.description]);
 
   const handleChange = (e) => {
     setForm({
@@ -20,29 +33,34 @@ export default function TransactionForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!userId) return;
+    if (!user) return;
 
     try {
       setLoading(true);
 
-      // Gửi qua REST API (để đảm bảo lưu DB ổn định)
       const res = await axios.post(
         `${process.env.REACT_APP_API_URL}/transactions`,
-        {
-          ...form,
-          user: userId,
-        }
+        { ...form, user: user._id }
       );
 
-      // Sau khi lưu thành công, emit socket để realtime
-      socket.emit("newTransaction", {
-        userId,
-        data: res.data, // transaction đã lưu
+      // Emit realtime
+      socket.emit("transaction:new", {
+        userId: user._id,
+        data: res.data,
       });
 
-      setForm({ amount: "", category: "", type: "expense" });
+      toast.success("Transaction added successfully!");
+      setForm({
+        description: "",
+        amount: "",
+        type: "expense",
+        category: "",
+        date: new Date().toISOString().slice(0, 10),
+        payment: "cash",
+      });
     } catch (err) {
-      console.error("Error adding transaction:", err);
+      console.error(err);
+      toast.error("Failed to add transaction");
     } finally {
       setLoading(false);
     }
@@ -56,22 +74,24 @@ export default function TransactionForm() {
       <h2 className="text-lg font-bold">Add Transaction</h2>
 
       <input
-        type="number"
-        name="amount"
-        placeholder="Amount"
-        value={form.amount}
+        type="text"
+        name="description"
+        placeholder="Description"
+        value={form.description}
         onChange={handleChange}
         className="border p-2 rounded w-full"
         required
       />
 
       <input
-        type="text"
-        name="category"
-        placeholder="Category"
-        value={form.category}
+        type="number"
+        name="amount"
+        placeholder="Amount"
+        value={form.amount}
         onChange={handleChange}
         className="border p-2 rounded w-full"
+        min="0"
+        step="0.01"
         required
       />
 
@@ -83,6 +103,35 @@ export default function TransactionForm() {
       >
         <option value="expense">Expense</option>
         <option value="income">Income</option>
+      </select>
+
+      <input
+        type="text"
+        name="category"
+        placeholder="Category"
+        value={form.category}
+        onChange={handleChange}
+        className="border p-2 rounded w-full"
+      />
+
+      <input
+        type="date"
+        name="date"
+        value={form.date}
+        onChange={handleChange}
+        className="border p-2 rounded w-full"
+      />
+
+      <select
+        name="payment"
+        value={form.payment}
+        onChange={handleChange}
+        className="border p-2 rounded w-full"
+      >
+        <option value="cash">Cash</option>
+        <option value="credit">Credit Card</option>
+        <option value="bank">Bank Transfer</option>
+        <option value="ewallet">E-Wallet</option>
       </select>
 
       <button
