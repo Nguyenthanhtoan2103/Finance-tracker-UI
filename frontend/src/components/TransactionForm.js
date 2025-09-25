@@ -71,7 +71,7 @@ export default function TransactionForm() {
       onSubmit={handleSubmit}
       className="p-4 bg-white shadow rounded-lg flex flex-col gap-3"
     >
-      <h2 className="text-lg font-bold">➕ Add Transaction</h2>
+    
 
       <input
         type="text"
@@ -144,5 +144,5 @@ export default function TransactionForm() {
       </button>
     </form>
   );
-  
+
 }

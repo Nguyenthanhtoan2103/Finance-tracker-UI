@@ -10,11 +10,12 @@ import { ToastContainer } from "react-toastify";
 import { AuthProvider } from "./context/AuthContext"; // <-- import AuthProvider
 
 function ProtectedRoute({ children }) {
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"; // vẫn dùng localStorage
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
 
   if (!isLoggedIn) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace />; // Redirect về login
   }
+
   return children;
 }
 
