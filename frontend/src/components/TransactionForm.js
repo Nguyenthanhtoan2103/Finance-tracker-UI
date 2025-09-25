@@ -1,21 +1,15 @@
-import React, { useState, useContext } from "react";
-import axios from "axios";
-import { toast } from "react-toastify";
-import { AuthContext } from "../context/AuthContext";
+import React, { useState } from "react";
 import { socket } from "../services/socket";
+import { useAuth } from "../context/AuthContext";
+import axios from "axios";
 
 export default function TransactionForm() {
-  const { user } = useContext(AuthContext);
-
+  const { user } = useAuth();
   const [form, setForm] = useState({
     amount: "",
     category: "",
     type: "expense",
-    description: "",
-    date: new Date().toISOString().slice(0, 10),
-    payment: "cash",
   });
-
   const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
@@ -27,41 +21,29 @@ export default function TransactionForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!user) {
-      toast.error("⚠️ You must log in to add a transaction!");
-      return;
-    }
+    if (!user) return;
 
     try {
       setLoading(true);
 
+      // Gửi qua REST API (để đảm bảo lưu DB ổn định)
       const res = await axios.post(
         `${process.env.REACT_APP_API_URL}/transactions`,
-        { ...form, user: user._id },
-        { withCredentials: true }
+        {
+          ...form,
+          user: user._id,
+        }
       );
 
-      toast.success("✅ Transaction added successfully!");
-
-      // Emit realtime update
-      socket.emit("transaction:new", {
+      // Sau khi lưu thành công, emit socket để realtime
+      socket.emit("newTransaction", {
         userId: user._id,
-        transaction: res.data,
+        data: res.data, // transaction đã lưu
       });
 
-      // Reset form
-      setForm({
-        amount: "",
-        category: "",
-        type: "expense",
-        description: "",
-        date: new Date().toISOString().slice(0, 10),
-        payment: "cash",
-      });
+      setForm({ amount: "", category: "", type: "expense" });
     } catch (err) {
-      console.error(err);
-      toast.error("❌ Failed to add transaction!");
+      console.error("Error adding transaction:", err);
     } finally {
       setLoading(false);
     }
@@ -70,74 +52,44 @@ export default function TransactionForm() {
   return (
     <form
       onSubmit={handleSubmit}
-      className="p-4 bg-white shadow rounded-lg flex flex-col gap-3"
+      className="bg-white shadow-md rounded-lg p-4 space-y-3"
     >
-      <h2 className="text-lg font-bold">➕ Add Transaction</h2>
+      <h2 className="text-lg font-bold">Add Transaction</h2>
 
       <input
         type="number"
         name="amount"
+        placeholder="Amount"
         value={form.amount}
         onChange={handleChange}
-        placeholder="Amount"
+        className="border p-2 rounded w-full"
         required
-        className="border p-2 rounded"
       />
 
       <input
         type="text"
         name="category"
+        placeholder="Category"
         value={form.category}
         onChange={handleChange}
-        placeholder="Category (e.g. Food, Transport)"
+        className="border p-2 rounded w-full"
         required
-        className="border p-2 rounded"
       />
 
       <select
         name="type"
         value={form.type}
         onChange={handleChange}
-        className="border p-2 rounded"
+        className="border p-2 rounded w-full"
       >
         <option value="expense">Expense</option>
         <option value="income">Income</option>
       </select>
 
-      <input
-        type="text"
-        name="description"
-        value={form.description}
-        onChange={handleChange}
-        placeholder="Description"
-        className="border p-2 rounded"
-      />
-
-      <input
-        type="date"
-        name="date"
-        value={form.date}
-        onChange={handleChange}
-        required
-        className="border p-2 rounded"
-      />
-
-      <select
-        name="payment"
-        value={form.payment}
-        onChange={handleChange}
-        className="border p-2 rounded"
-      >
-        <option value="cash">Cash</option>
-        <option value="credit">Credit Card</option>
-        <option value="bank">Bank Transfer</option>
-        <option value="ewallet">E-Wallet</option>
-      </select>
-
       <button
         type="submit"
         disabled={loading}
-        className="bg-blue-500 text-white p-2 rounded hover:bg-blue-600 disabled:opacity-50"
+        className="bg-blue-500 text-white px-4 py-2 rounded w-full hover:bg-blue-600 disabled:opacity-50"
       >
         {loading ? "Saving..." : "Add Transaction"}
       </button>
