@@ -356,21 +356,43 @@ export default function TransactionForm({ onNewTransaction }) {
   const [loading, setLoading] = useState(false);
 
   // --- Connect Socket.IO và join room ---
-  useEffect(() => {
-    if (isLoggedIn) {
-      joinUserRoom(); // đảm bảo userId đã tồn tại trong localStorage
+useEffect(() => {
+  if (isLoggedIn) {
+    const userId = localStorage.getItem("userId");
 
-      socket.on("transaction:update", (transaction) => {
+    if (userId) {
+      // đảm bảo socket có token + userId
+      socket.auth = { token: localStorage.getItem("token") };
+      if (!socket.connected) {
+        socket.connect();
+      }
+
+      // join room cho userId
+      socket.emit("join", userId);
+      console.log("🔹 Joined socket room with userId:", userId);
+
+      // Lắng nghe event transaction mới từ backend
+      socket.on("transaction:new", (transaction) => {
         console.log("🔔 Transaction mới:", transaction);
-        if (onNewTransaction) onNewTransaction(transaction);
-      });
-    }
+        toast.info(
+          `🔔 New transaction: ${transaction.description} - ${transaction.amount}`
+        );
 
-    return () => {
-      socket.off("transaction:update");
-      socket.disconnect();
-    };
-  }, [isLoggedIn, onNewTransaction]);
+        if (onNewTransaction) {
+          onNewTransaction(transaction); // callback để update list ở Dashboard
+        }
+      });
+    } else {
+      console.warn("⚠️ userId not found in localStorage, cannot join room");
+    }
+  }
+
+  return () => {
+    // cleanup: chỉ tắt listener, không disconnect toàn bộ socket ở đây
+    socket.off("transaction:new");
+  };
+}, [isLoggedIn, onNewTransaction]);
+
 
   // --- Handle form change ---
   const handleChange = (e) => {

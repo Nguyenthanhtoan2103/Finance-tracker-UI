@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
@@ -7,19 +7,46 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Budget from "./pages/Budgets";
 import { ToastContainer } from "react-toastify";
-import { AuthProvider } from "./context/AuthContext"; // <-- import AuthProvider
+import { AuthProvider } from "./context/AuthContext"; 
+import { socket, connectSocket, disconnectSocket } from "./services/socket";
 
 function ProtectedRoute({ children }) {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-
   if (!isLoggedIn) {
-    return <Navigate to="/login" replace />; // Redirect về login
+    return <Navigate to="/login" replace />;
   }
-
   return children;
 }
 
 export default function App() {
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    const userId = localStorage.getItem("userId");
+
+    if (token && userId) {
+      connectSocket({ userId, token });
+    }
+
+    socket.on("connect", () => {
+      console.log("✅ Socket connected:", socket.id);
+    });
+
+    socket.on("connect_error", (err) => {
+      console.error("❌ Socket connect_error:", err.message);
+    });
+
+    socket.on("disconnect", (reason) => {
+      console.log("⚡ Socket disconnected:", reason);
+    });
+
+    return () => {
+      socket.off("connect");
+      socket.off("connect_error");
+      socket.off("disconnect");
+      disconnectSocket();
+    };
+  }, []);
+
   return (
     <AuthProvider>
       <Router>
