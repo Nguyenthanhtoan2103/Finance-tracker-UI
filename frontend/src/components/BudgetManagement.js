@@ -69,7 +69,7 @@ export default function BudgetManager() {
           onClick={handleAddBudget}
           className="bg-blue-500 text-white px-4 rounded hover:bg-blue-600 transition"
         >
-          Add / Update
+          Add
         </button>
       </div>
 

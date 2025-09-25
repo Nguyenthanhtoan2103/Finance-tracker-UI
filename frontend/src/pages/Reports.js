@@ -41,14 +41,14 @@ export default function Reports() {
     }
   };
 
-  // Tính balance nếu summary có dữ liệu
+ 
   const balance = summary ? summary.income - summary.expense : 0;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-5xl mx-auto px-4 py-8">
         <h1 className="text-3xl font-bold text-blue-700 mb-8 text-center">
-          📑 Reports
+           Reports
         </h1>
 
         <div className="bg-white p-6 rounded-lg shadow">
