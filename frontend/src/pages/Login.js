@@ -52,7 +52,7 @@ export default function Login() {
 
     try {
       const res = await loginUser(form);
-      handleLoginSuccess(res.data.token, res.data.username);
+      handleLoginSuccess(res.data.token, res.data.username, res.data.userId);
     } catch (err) {
       console.error(err);
       toast.error("Login failed. Check email/password.");
