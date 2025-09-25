@@ -50,7 +50,13 @@ export default function Home() {
             <TransactionForm addTransaction={addTransaction} />
           </div>
 
-          
+          <div className="bg-white p-4 rounded-lg shadow">
+            <h2 className="text-xl font-semibold mb-4">Transactions</h2>
+            <TransactionList
+              transactions={transactions}
+              deleteTransaction={removeTransaction}
+            />
+          </div>
         </div>
 
         {/* Right: Dashboard */}
@@ -60,15 +66,7 @@ export default function Home() {
             <Dashboard transactions={transactions} />
           </div>
         </div>
-      
       </div>
-        <div className="bg-white p-4 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Transactions</h2>
-            <TransactionList
-              transactions={transactions}
-              deleteTransaction={removeTransaction}
-            />
-          </div>
     </div>
   );
 }
