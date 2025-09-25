@@ -1,112 +1,96 @@
-import React, { useState, useEffect } from "react";
-import { toast } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import { suggestCategory } from "../utils/categorySuggester";
+import React, { useState } from "react";
+import { socket } from "../services/socket";
+import axios from "axios";
 
-export default function TransactionForm({ onAdd }) {
-  const [description, setDescription] = useState("");
-  const [amount, setAmount] = useState("");
-  const [type, setType] = useState("expense");
-  const [category, setCategory] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [payment, setPayment] = useState("cash");
+export default function TransactionForm() {
+  const userId = localStorage.getItem("userId"); // ✅ lấy từ localStorage
+  const [form, setForm] = useState({
+    amount: "",
+    category: "",
+    type: "expense",
+  });
+  const [loading, setLoading] = useState(false);
 
-  // Gợi ý category dựa trên note
-  useEffect(() => {
-    const suggested = suggestCategory(description);
-    setCategory(suggested);
-  }, [description]);
+  const handleChange = (e) => {
+    setForm({
+      ...form,
+      [e.target.name]: e.target.value,
+    });
+  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      await onAdd({
-        description,
-        amount: Number(amount),
-        type,
-        category,
-        date,
-        payment,
-      });
-      toast.success("Transaction added successfully!");
+    if (!userId) return;
 
-      // Reset form
-      setDescription("");
-      setAmount("");
-      setCategory("");
-      setDate(new Date().toISOString().slice(0, 10));
-      setPayment("cash");
-      setType("expense");
+    try {
+      setLoading(true);
+
+      // Gửi qua REST API (để đảm bảo lưu DB ổn định)
+      const res = await axios.post(
+        `${process.env.REACT_APP_API_URL}/transactions`,
+        {
+          ...form,
+          user: userId,
+        }
+      );
+
+      // Sau khi lưu thành công, emit socket để realtime
+      socket.emit("newTransaction", {
+        userId,
+        data: res.data, // transaction đã lưu
+      });
+
+      setForm({ amount: "", category: "", type: "expense" });
     } catch (err) {
-      toast.error("Failed to add transaction!");
+      console.error("Error adding transaction:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form
+      onSubmit={handleSubmit}
+      className="bg-white shadow-md rounded-lg p-4 space-y-3"
+    >
+      <h2 className="text-lg font-bold">Add Transaction</h2>
+
       <input
-        type="text"
-        placeholder="Description"
-        value={description}
-        onChange={(e) => setDescription(e.target.value)}
-        className="w-full p-2 border rounded"
+        type="number"
+        name="amount"
+        placeholder="Amount"
+        value={form.amount}
+        onChange={handleChange}
+        className="border p-2 rounded w-full"
         required
       />
 
       <input
-  type="number"
-  placeholder="Amount"
-  value={amount}
-  onChange={(e) => {
-    const val = e.target.value;
-    if (val >= 0) setAmount(val); 
-  }}
-  className="w-full p-2 border rounded"
-  min="0"
-  step="0.01"
-  required
-/>
+        type="text"
+        name="category"
+        placeholder="Category"
+        value={form.category}
+        onChange={handleChange}
+        className="border p-2 rounded w-full"
+        required
+      />
 
       <select
-        value={type}
-        onChange={(e) => setType(e.target.value)}
-        className="w-full p-2 border rounded"
+        name="type"
+        value={form.type}
+        onChange={handleChange}
+        className="border p-2 rounded w-full"
       >
         <option value="expense">Expense</option>
         <option value="income">Income</option>
       </select>
 
-      <input
-        type="text"
-        value={category}
-        placeholder="Category (AI suggestion)"
-        readOnly
-        className="w-full p-2 border rounded bg-gray-100"
-      />
-
-      <input
-        type="date"
-        value={date}
-        onChange={(e) => setDate(e.target.value)}
-        className="w-full p-2 border rounded"
-      />
-
-      <select
-        value={payment}
-        onChange={(e) => setPayment(e.target.value)}
-        className="w-full p-2 border rounded"
-      >
-        <option value="cash">Cash</option>
-        <option value="credit">Credit Card</option>
-        <option value="bank">Bank Transfer</option>
-        <option value="ewallet">E-Wallet</option>
-      </select>
-
       <button
         type="submit"
-        className="px-4 py-2 bg-blue-500 text-white rounded"
+        disabled={loading}
+        className="bg-blue-500 text-white px-4 py-2 rounded w-full hover:bg-blue-600 disabled:opacity-50"
       >
-        Add Transaction
+        {loading ? "Saving..." : "Add Transaction"}
       </button>
     </form>
   );

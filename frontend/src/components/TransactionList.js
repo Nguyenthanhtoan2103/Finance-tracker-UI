@@ -3,7 +3,7 @@ import { Trash2, Edit3 } from "lucide-react";
 import { toast } from "react-toastify";
 import EditTransactionModal from "./EditTransactionModal";
 import { updateTransaction, deleteTransaction } from "../services/api";
-import socket from "../socket";
+import {socket} from "../services/socket";
 
 export default function TransactionList({ transactions = [], onRefresh }) {
   const [localTransactions, setLocalTransactions] = useState(transactions);
