@@ -2,15 +2,10 @@ import React, { useState, useMemo, useEffect } from "react";
 import { Trash2, Edit3 } from "lucide-react";
 import { toast } from "react-toastify";
 import EditTransactionModal from "./EditTransactionModal";
-import { updateTransaction } from "../services/api";
-import { io } from "socket.io-client";
+import { updateTransaction, deleteTransaction } from "../services/api";
+import socket from "../socket";
 
-// ⚡ Kết nối socket
-const socket = io(process.env.REACT_APP_SOCKET_URL || "http://localhost:5000", {
-  transports: ["websocket"],
-});
-
-export default function TransactionList({ transactions = [], onDelete, onRefresh }) {
+export default function TransactionList({ transactions = [], onRefresh }) {
   const [localTransactions, setLocalTransactions] = useState(transactions);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -21,7 +16,7 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
     setLocalTransactions(transactions);
   }, [transactions]);
 
-  // ✅ Realtime với Socket.IO
+  // ✅ Socket realtime
   useEffect(() => {
     const userId = localStorage.getItem("userId");
     if (!userId) return;
@@ -52,12 +47,19 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
     };
   }, []);
 
-  // ✅ Cập nhật transaction
+  // ✅ Update transaction
   const handleUpdate = async (data) => {
     if (!editing) return;
     setLoading(true);
     try {
-      await updateTransaction(editing._id || editing.id, data);
+      const updated = await updateTransaction(editing._id, data);
+
+      // 🔥 Phát socket update
+      const userId = localStorage.getItem("userId");
+      if (userId) {
+        socket.emit("transaction:updated", { userId, data: updated });
+      }
+
       toast.success("Transaction updated successfully!");
       setEditing(null);
       if (onRefresh) onRefresh();
@@ -69,7 +71,7 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
     }
   };
 
-  // ✅ Xoá có confirm Toast
+  // ✅ Delete transaction
   const handleDelete = (t) => {
     toast(
       ({ closeToast }) => (
@@ -81,8 +83,16 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
             <button
               onClick={async () => {
                 try {
-                  await onDelete(t._id || t.id);
+                  await deleteTransaction(t._id);
+
+                  // 🔥 Phát socket delete
+                  const userId = localStorage.getItem("userId");
+                  if (userId) {
+                    socket.emit("transaction:deleted", { userId, data: t });
+                  }
+
                   toast.success("Deleted successfully!");
+                  if (onRefresh) onRefresh();
                 } catch (err) {
                   console.error(err);
                   toast.error("Delete failed!");
@@ -129,7 +139,7 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
         className="w-full mb-4 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
       />
 
-      {/* Bảng */}
+      {/* Table */}
       {filteredTransactions.length === 0 ? (
         <div className="text-gray-500 text-sm">No transactions found</div>
       ) : (
@@ -149,7 +159,7 @@ export default function TransactionList({ transactions = [], onDelete, onRefresh
             <tbody>
               {filteredTransactions.map((t) => (
                 <tr
-                  key={t._id || t.id}
+                  key={t._id}
                   className="border-b last:border-none hover:bg-gray-50"
                 >
                   <td className="px-4 py-2">{t.description}</td>
