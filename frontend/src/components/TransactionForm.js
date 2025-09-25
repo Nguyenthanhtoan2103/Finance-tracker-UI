@@ -40,7 +40,7 @@ const handleSubmit = async (e) => {
   e.preventDefault();
 
   if (!isLoggedIn) {
-    toast.error("⚠️ Please log in to add a transaction!");
+    toast.error("Please log in to add a transaction!");
     return;
   }
 
