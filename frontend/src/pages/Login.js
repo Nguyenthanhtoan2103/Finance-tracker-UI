@@ -3,7 +3,7 @@ import { loginUser } from "../services/api";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 import { FaEye, FaEyeSlash } from "react-icons/fa"; // ✅ Import icon
-
+import { joinUserRoom, socket } from "../services/socket";
 export default function Login() {
   const [form, setForm] = useState({ email: "", password: "" });
   const [showPassword, setShowPassword] = useState(false); // ✅ Trạng thái show/hide mật khẩu
@@ -17,6 +17,9 @@ export default function Login() {
     localStorage.setItem("username", username);
     localStorage.setItem("userId", userId); 
     localStorage.setItem("isLoggedIn", "true");
+    socket.auth = { token };
+  socket.connect();
+  joinUserRoom(userId);
     toast.success("Login successful!");
     window.location.href = "/";
   };
