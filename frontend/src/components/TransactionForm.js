@@ -1,8 +1,8 @@
-import React, { useState, useContext } from "react";
-import axios from "axios";
+import React, { useState, useContext, useEffect } from "react";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
 import { socket } from "../services/socket";
+import { createTransaction } from "../services/api";
 
 export default function TransactionForm() {
   const { isLoggedIn } = useContext(AuthContext);
@@ -17,6 +17,17 @@ export default function TransactionForm() {
   });
 
   const [loading, setLoading] = useState(false);
+
+  // Auto join socket room on mount if logged in
+  useEffect(() => {
+    if (isLoggedIn) {
+      const userId = localStorage.getItem("userId");
+      if (userId) {
+        socket.connect();
+        socket.emit("join", userId);
+      }
+    }
+  }, [isLoggedIn]);
 
   const handleChange = (e) => {
     setForm({
@@ -36,22 +47,7 @@ export default function TransactionForm() {
     try {
       setLoading(true);
 
-      // Lấy token từ localStorage
-      const token = localStorage.getItem("token");
-      if (!token) {
-        toast.error("No authentication token found.");
-        return;
-      }
-
-      const res = await axios.post(
-        `${process.env.REACT_APP_API_URL}/transactions`,
-        { ...form },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      const res = await createTransaction(form);
 
       toast.success("✅ Transaction added successfully!");
 
@@ -60,7 +56,6 @@ export default function TransactionForm() {
         transaction: res.data,
       });
 
-      // Reset form
       setForm({
         description: "",
         amount: "",
