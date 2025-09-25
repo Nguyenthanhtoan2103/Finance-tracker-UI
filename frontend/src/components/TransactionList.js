@@ -26,13 +26,13 @@ export default function TransactionList({ transactions = [], onRefresh }) {
 
       if (msg.action === "created") {
         setLocalTransactions((prev) => [msg.data, ...prev]);
-        toast.info("✨ New transaction added!");
+       
       }
       if (msg.action === "updated") {
         setLocalTransactions((prev) =>
           prev.map((t) => (t._id === msg.data._id ? msg.data : t))
         );
-        toast.success("Transaction updated!");
+       
       }
       if (msg.action === "deleted") {
         setLocalTransactions((prev) =>

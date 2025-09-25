@@ -369,13 +369,13 @@ useEffect(() => {
 
       // join room cho userId
       socket.emit("join", userId);
-      console.log("🔹 Joined socket room with userId:", userId);
+      console.log("Joined socket room with userId:", userId);
 
       // Lắng nghe event transaction mới từ backend
       socket.on("transaction:new", (transaction) => {
-        console.log("🔔 Transaction mới:", transaction);
+        console.log("Transaction mới:", transaction);
         toast.info(
-          `🔔 New transaction: ${transaction.description} - ${transaction.amount}`
+          `New transaction: ${transaction.description} - ${transaction.amount}`
         );
 
         if (onNewTransaction) {
@@ -383,7 +383,7 @@ useEffect(() => {
         }
       });
     } else {
-      console.warn("⚠️ userId not found in localStorage, cannot join room");
+      console.warn("userId not found in localStorage, cannot join room");
     }
   }
 
