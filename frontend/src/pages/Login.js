@@ -28,9 +28,9 @@ export default function Login() {
     const params = new URLSearchParams(location.search);
     const token = params.get("token");
     const username = params.get("username");
-
+  const userId = params.get("userId");
     if (token) {
-      handleLoginSuccess(token, username || "GoogleUser");
+      handleLoginSuccess(token, username || "GoogleUser", userId);
     }
   }, [location.search]);
 
