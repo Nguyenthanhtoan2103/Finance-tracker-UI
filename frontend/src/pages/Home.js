@@ -60,6 +60,8 @@ export default function Home() {
             <Dashboard transactions={transactions} />
           </div>
         </div>
+      
+      </div>
         <div className="bg-white p-4 rounded-lg shadow">
             <h2 className="text-xl font-semibold mb-4">Transactions</h2>
             <TransactionList
@@ -67,7 +69,6 @@ export default function Home() {
               deleteTransaction={removeTransaction}
             />
           </div>
-      </div>
     </div>
   );
 }
