@@ -13,7 +13,7 @@ export default function TransactionForm() {
     category: "",
     type: "expense",
     date: new Date().toISOString().slice(0, 10),
-    payment: "cash",
+    paymentMethod: "cash", // backend expects paymentMethod
   });
 
   const [loading, setLoading] = useState(false);
@@ -40,14 +40,31 @@ export default function TransactionForm() {
     e.preventDefault();
 
     if (!isLoggedIn) {
-      toast.error("⚠️ Please log in to add a transaction!");
+      toast.error("Please log in to add a transaction!");
+      return;
+    }
+
+    const userId = localStorage.getItem("userId");
+    if (!userId) {
+      toast.error("User ID not found. Please login again.");
+      return;
+    }
+
+    if (!form.description || !form.amount || !form.category) {
+      toast.error("Please fill in all required fields.");
       return;
     }
 
     try {
       setLoading(true);
 
-      const res = await createTransaction(form);
+      // Append userId to form
+      const transactionData = {
+        ...form,
+        user: userId,
+      };
+
+      const res = await createTransaction(transactionData);
 
       toast.success("Transaction added successfully!");
 
@@ -56,13 +73,14 @@ export default function TransactionForm() {
         transaction: res.data,
       });
 
+      // Reset form
       setForm({
         description: "",
         amount: "",
         category: "",
         type: "expense",
         date: new Date().toISOString().slice(0, 10),
-        payment: "cash",
+        paymentMethod: "cash",
       });
     } catch (err) {
       console.error(err);
@@ -106,6 +124,7 @@ export default function TransactionForm() {
         onChange={handleChange}
         placeholder="Category"
         className="border p-2 rounded w-full"
+        required
       />
 
       <select
@@ -128,8 +147,8 @@ export default function TransactionForm() {
       />
 
       <select
-        name="payment"
-        value={form.payment}
+        name="paymentMethod"
+        value={form.paymentMethod}
         onChange={handleChange}
         className="border p-2 rounded w-full"
       >
