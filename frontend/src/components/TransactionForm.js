@@ -1,4 +1,4 @@
-import React, { useState, useContext, useEffect } from "react";
+import React, { useState, useContext } from "react";
 import axios from "axios";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
@@ -36,10 +36,21 @@ export default function TransactionForm() {
     try {
       setLoading(true);
 
+      // Lấy token từ localStorage
+      const token = localStorage.getItem("token");
+      if (!token) {
+        toast.error("No authentication token found.");
+        return;
+      }
+
       const res = await axios.post(
         `${process.env.REACT_APP_API_URL}/transactions`,
         { ...form },
-        { withCredentials: true }
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       toast.success("✅ Transaction added successfully!");
@@ -71,7 +82,7 @@ export default function TransactionForm() {
       onSubmit={handleSubmit}
       className="p-4 bg-white shadow rounded-lg flex flex-col gap-3"
     >
-    
+      <h2 className="text-lg font-bold">➕ Add Transaction</h2>
 
       <input
         type="text"
@@ -144,5 +155,4 @@ export default function TransactionForm() {
       </button>
     </form>
   );
-
 }
