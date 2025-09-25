@@ -7,7 +7,7 @@ export const socket = io("http://www.ftracker.site:5000", {
 
 export const joinUserRoom = () => {
   const token = localStorage.getItem("token");
-  const userId = localStorage.getItem("userId"); // Lấy userId mới nhất
+  const userId = localStorage.getItem("userId");
 
   if (!userId) {
     console.warn("⚠️ No userId found in localStorage");
