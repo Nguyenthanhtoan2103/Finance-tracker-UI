@@ -7,10 +7,11 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Budget from "./pages/Budgets";
 import { ToastContainer } from "react-toastify";
+import { AuthProvider } from "./context/AuthContext"; // <-- import AuthProvider
 
-// ProtectedRoute component
 function ProtectedRoute({ children }) {
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"; // Hoặc dùng context/auth state
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true"; // vẫn dùng localStorage
+
   if (!isLoggedIn) {
     return <Navigate to="/login" replace />;
   }
@@ -19,7 +20,7 @@ function ProtectedRoute({ children }) {
 
 export default function App() {
   return (
-    <>
+    <AuthProvider>
       <Router>
         <Navbar />
         <Routes>
@@ -53,7 +54,7 @@ export default function App() {
             }
           />
 
-          {/* Nếu truy cập path khác, redirect về login */}
+          {/* Redirect all other paths */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
@@ -69,6 +70,6 @@ export default function App() {
         draggable
         pauseOnHover
       />
-    </>
+    </AuthProvider>
   );
 }
