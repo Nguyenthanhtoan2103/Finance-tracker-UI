@@ -24,22 +24,22 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     socket.on(`transaction:${userId}`, (msg) => {
       console.log("Realtime update:", msg);
 
-      // if (msg.action === "created") {
-      //   setLocalTransactions((prev) => [msg.data, ...prev]);
+      if (msg.action === "created") {
+        setLocalTransactions((prev) => [msg.data, ...prev]);
        
-      // }
-      // if (msg.action === "updated") {
-      //   setLocalTransactions((prev) =>
-      //     prev.map((t) => (t._id === msg.data._id ? msg.data : t))
-      //   );
+      }
+      if (msg.action === "updated") {
+        setLocalTransactions((prev) =>
+          prev.map((t) => (t._id === msg.data._id ? msg.data : t))
+        );
        
-      // }
-      // if (msg.action === "deleted") {
-      //   setLocalTransactions((prev) =>
-      //     prev.filter((t) => t._id !== msg.data._id)
-      //   );
+      }
+      if (msg.action === "deleted") {
+        setLocalTransactions((prev) =>
+          prev.filter((t) => t._id !== msg.data._id)
+        );
    
-      // }
+      }
     });
 
     return () => {
