@@ -12,9 +12,10 @@ export default function Login() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const handleLoginSuccess = (token, username) => {
+  const handleLoginSuccess = (token, username, userId) => {
     localStorage.setItem("token", token);
     localStorage.setItem("username", username);
+    localStorage.setItem("userId", userId); 
     localStorage.setItem("isLoggedIn", "true");
     toast.success("Login successful!");
     window.location.href = "/";
