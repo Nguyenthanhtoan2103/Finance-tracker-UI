@@ -2,8 +2,6 @@ import React, { useState, useEffect } from "react";
 import { toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { suggestCategory } from "../utils/categorySuggester";
-import { addTransaction } from "../services/api";
-import socket from "../socket";
 
 export default function TransactionForm({ onAdd }) {
   const [description, setDescription] = useState("");
@@ -22,25 +20,15 @@ export default function TransactionForm({ onAdd }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const newTx = {
+      await onAdd({
         description,
         amount: Number(amount),
         type,
         category,
         date,
         payment,
-      };
-
-      const saved = await addTransaction(newTx);
-
-      // 🔥 Phát socket để list đồng bộ ngay
-      const userId = localStorage.getItem("userId");
-      if (userId) {
-        socket.emit("transaction:created", { userId, data: saved });
-      }
-
+      });
       toast.success("Transaction added successfully!");
-      if (onAdd) onAdd(saved); // fallback update App state
 
       // Reset form
       setDescription("");
@@ -50,7 +38,6 @@ export default function TransactionForm({ onAdd }) {
       setPayment("cash");
       setType("expense");
     } catch (err) {
-      console.error(err);
       toast.error("Failed to add transaction!");
     }
   };
@@ -67,18 +54,18 @@ export default function TransactionForm({ onAdd }) {
       />
 
       <input
-        type="number"
-        placeholder="Amount"
-        value={amount}
-        onChange={(e) => {
-          const val = e.target.value;
-          if (val >= 0) setAmount(val);
-        }}
-        className="w-full p-2 border rounded"
-        min="0"
-        step="0.01"
-        required
-      />
+  type="number"
+  placeholder="Amount"
+  value={amount}
+  onChange={(e) => {
+    const val = e.target.value;
+    if (val >= 0) setAmount(val); 
+  }}
+  className="w-full p-2 border rounded"
+  min="0"
+  step="0.01"
+  required
+/>
 
       <select
         value={type}
