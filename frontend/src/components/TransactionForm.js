@@ -1,10 +1,10 @@
 import React, { useState, useContext, useEffect } from "react";
 import { toast } from "react-toastify";
 import { AuthContext } from "../context/AuthContext";
-import { socket } from "../services/socket";
+import { socket, joinUserRoom } from "../services/socket";
 import { createTransaction } from "../services/api";
 
-export default function TransactionForm() {
+export default function TransactionForm({ onNewTransaction }) {
   const { isLoggedIn } = useContext(AuthContext);
 
   const [form, setForm] = useState({
@@ -13,21 +13,35 @@ export default function TransactionForm() {
     category: "",
     type: "expense",
     date: new Date().toISOString().slice(0, 10),
-    paymentMethod: "cash", // backend expects paymentMethod
+    paymentMethod: "cash",
   });
 
   const [loading, setLoading] = useState(false);
 
-  // Auto join socket room on mount if logged in
+  // Join room và lắng nghe socket event
   useEffect(() => {
     if (isLoggedIn) {
       const userId = localStorage.getItem("userId");
       if (userId) {
+        socket.auth = { token: localStorage.getItem("token") };
         socket.connect();
-        socket.emit("join", userId);
+        joinUserRoom(userId);
+
+        // Lắng nghe event transaction mới
+        socket.on("transaction:new", (transaction) => {
+          console.log("🔔 Transaction mới:", transaction);
+          if (onNewTransaction) {
+            onNewTransaction(transaction); // gửi lên component cha để update list
+          }
+        });
       }
+
+      return () => {
+        socket.off("transaction:new");
+        socket.disconnect();
+      };
     }
-  }, [isLoggedIn]);
+  }, [isLoggedIn, onNewTransaction]);
 
   const handleChange = (e) => {
     setForm({
@@ -36,48 +50,48 @@ export default function TransactionForm() {
     });
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
+  const handleSubmit = async (e) => {
+    e.preventDefault();
 
-  if (!isLoggedIn) {
-    toast.error("Please log in to add a transaction!");
-    return;
-  }
+    if (!isLoggedIn) {
+      toast.error("⚠️ Please log in to add a transaction!");
+      return;
+    }
 
-  try {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const transactionData = {
-      description: form.description,
-      amount: Number(form.amount),
-      category: form.category,
-      type: form.type,
-      date: form.date,
-      paymentMethod: form.payment
-    };
+      const transactionData = {
+        description: form.description,
+        amount: Number(form.amount),
+        category: form.category,
+        type: form.type,
+        date: form.date,
+        paymentMethod: form.paymentMethod,
+      };
 
-    const res = await createTransaction(transactionData);
+      const res = await createTransaction(transactionData);
 
-    toast.success("Transaction added successfully!");
+      toast.success("Transaction added successfully!");
 
-    socket.emit("transaction:new", { transaction: res.data });
+      // Không cần emit ở frontend nếu backend emit rồi
+      // socket.emit("transaction:new", res.data);
 
-    setForm({
-      description: "",
-      amount: "",
-      category: "",
-      type: "expense",
-      date: new Date().toISOString().slice(0, 10),
-      payment: "cash"
-    });
-  } catch (err) {
-    console.error(err);
-    toast.error("Failed to add transaction!");
-  } finally {
-    setLoading(false);
-  }
-};
-
+      setForm({
+        description: "",
+        amount: "",
+        category: "",
+        type: "expense",
+        date: new Date().toISOString().slice(0, 10),
+        paymentMethod: "cash",
+      });
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to add transaction!");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <form
