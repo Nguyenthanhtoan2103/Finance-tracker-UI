@@ -463,7 +463,7 @@
 //     </div>
 //   );
 // }
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Trash2, Edit3 } from "lucide-react";
 import { toast } from "react-toastify";
 import EditTransactionModal from "./EditTransactionModal";
@@ -471,7 +471,9 @@ import { updateTransaction, deleteTransaction } from "../services/api";
 import { socket } from "../services/socket";
 
 export default function TransactionList({ transactions = [], onRefresh }) {
-  const [localTransactions, setLocalTransactions] = useState(transactions);
+  const [transactionsData, setTransactionsData] = useState(transactions);
+  const [filteredTransactions, setFilteredTransactions] = useState([]);
+  const [paginatedTransactions, setPaginatedTransactions] = useState([]);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -481,7 +483,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
 
   // Đồng bộ dữ liệu ban đầu
   useEffect(() => {
-    setLocalTransactions(transactions);
+    setTransactionsData(transactions);
   }, [transactions]);
 
   // Socket realtime
@@ -490,7 +492,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     if (!userId) return;
 
     const handler = (msg) => {
-      setLocalTransactions((prev) => {
+      setTransactionsData((prev) => {
         let updated = [...prev];
         if (msg.action === "created") {
           updated = [msg.data, ...prev];
@@ -510,6 +512,30 @@ export default function TransactionList({ transactions = [], onRefresh }) {
       socket.off(`transaction:${userId}`, handler);
     };
   }, []);
+
+  // Filter dữ liệu
+  useEffect(() => {
+    const term = searchTerm.toLowerCase();
+    const filtered = transactionsData.filter((t) => {
+      return (
+        (t.description && t.description.toLowerCase().includes(term)) ||
+        (t.category && t.category.toLowerCase().includes(term)) ||
+        (t.payment && t.payment.toLowerCase().includes(term))
+      );
+    });
+    setFilteredTransactions(filtered);
+    setCurrentPage(1); // reset page mỗi lần filter thay đổi
+  }, [transactionsData, searchTerm]);
+
+  // Pagination dữ liệu
+  useEffect(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const paginated = filteredTransactions.slice(
+      startIndex,
+      startIndex + itemsPerPage
+    );
+    setPaginatedTransactions(paginated);
+  }, [filteredTransactions, currentPage]);
 
   const handleUpdate = async (data) => {
     if (!editing) return;
@@ -572,29 +598,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     );
   };
 
-  // Filter dữ liệu
-  const filteredTransactions = useMemo(() => {
-    return localTransactions.filter((t) => {
-      const term = searchTerm.toLowerCase();
-      return (
-        (t.description && t.description.toLowerCase().includes(term)) ||
-        (t.category && t.category.toLowerCase().includes(term)) ||
-        (t.payment && t.payment.toLowerCase().includes(term))
-      );
-    });
-  }, [localTransactions, searchTerm]);
-
-  // Pagination
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
-  const paginatedTransactions = useMemo(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    return filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
-  }, [filteredTransactions, currentPage]);
-
-  // Reset page khi dữ liệu thay đổi
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filteredTransactions]);
 
   return (
     <div className="bg-white shadow-md rounded-xl p-4">
