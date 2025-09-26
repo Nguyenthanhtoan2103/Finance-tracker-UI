@@ -291,18 +291,19 @@ export default function BudgetManager() {
   // Start editing
   const handleEditClick = (b) => {
     setEditingId(b._id);
-    setEditLimit(b.limit.toString());
+    setEditLimit(b.limit ? b.limit.toString() : "0");
   };
 
   // Save update
   const handleUpdateBudget = async (id) => {
-    if (editLimit === "" || isNaN(editLimit)) {
-      toast.warning("Limit must be a number!");
+    const limitValue = Number(editLimit);
+    if (isNaN(limitValue) || limitValue < 0) {
+      toast.warning("Limit must be a valid number!");
       return;
     }
 
     try {
-      await updateBudget(id, { limit: Number(editLimit) });
+      await updateBudget(id, { limit: limitValue });
       toast.success("Budget updated!");
       setEditingId(null);
       setEditLimit("");
@@ -396,7 +397,8 @@ export default function BudgetManager() {
                   </div>
                 ) : (
                   <span>
-                    {b.spent.toLocaleString()} / {b.limit.toLocaleString()} ₫
+                    {Number(b.spent || 0).toLocaleString()} /{" "}
+                    {Number(b.limit || 0).toLocaleString()} ₫
                   </span>
                 )}
               </div>
@@ -404,7 +406,7 @@ export default function BudgetManager() {
               {/* Progress bar */}
               <div className="w-full bg-gray-200 h-5 rounded-lg">
                 <div
-                  style={{ width: `${Math.min(b.progress, 100)}%` }}
+                  style={{ width: `${Math.min(b.progress || 0, 100)}%` }}
                   className={`${color} h-5 rounded-lg transition-all`}
                 />
               </div>
