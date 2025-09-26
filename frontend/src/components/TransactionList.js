@@ -281,42 +281,50 @@ export default function TransactionList({ transactions = [], onRefresh }) {
   };
 
   // --- Delete transaction ---
-  const handleDelete = (t) => {
-    toast(
-      ({ closeToast }) => (
-        <div className="flex flex-col">
-          <span>
-            Are you sure to delete <b>{t.description || "transaction"}</b>?
-          </span>
-          <div className="mt-2 flex gap-2">
-            <button
-              onClick={async () => {
-                try {
-                  await deleteTransaction(t._id);
-                  toast.success("Deleted successfully!");
-                  if (onRefresh) onRefresh();
-                } catch (err) {
-                  console.error(err);
-                  toast.error("Delete failed!");
+const handleDelete = (t) => {
+  toast(
+    ({ closeToast }) => (
+      <div className="flex flex-col">
+        <span>
+          Are you sure to delete <b>{t.description || "transaction"}</b>?
+        </span>
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                await deleteTransaction(t._id); // ✅ gọi API chuẩn
+                toast.success("Deleted successfully!");
+                fetchTransactions(); // ✅ reload list
+                if (onRefresh) onRefresh();
+
+                // emit socket để realtime sang chart/list khác
+                const userId = localStorage.getItem("userId");
+                if (userId) {
+                  socket.emit("transaction:deleted", { userId, data: t });
                 }
-                closeToast();
-              }}
-              className="bg-red-500 text-white px-3 py-1 rounded"
-            >
-              Delete
-            </button>
-            <button
-              onClick={closeToast}
-              className="bg-gray-300 px-3 py-1 rounded"
-            >
-              Cancel
-            </button>
-          </div>
+              } catch (err) {
+                console.error(err);
+                toast.error("Delete failed!");
+              }
+              closeToast();
+            }}
+            className="bg-red-500 text-white px-3 py-1 rounded"
+          >
+            Delete
+          </button>
+          <button
+            onClick={closeToast}
+            className="bg-gray-300 px-3 py-1 rounded"
+          >
+            Cancel
+          </button>
         </div>
-      ),
-      { autoClose: false }
-    );
-  };
+      </div>
+    ),
+    { autoClose: false }
+  );
+};
+
 
   // --- Search filter ---
   const filteredTransactions = useMemo(() => {
