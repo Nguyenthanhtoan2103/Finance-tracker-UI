@@ -476,9 +476,8 @@ export default function TransactionList({ transactions = [], onRefresh }) {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // Số item mỗi trang
+  const itemsPerPage = 10;
 
   // Đồng bộ prop -> state
   useEffect(() => {
@@ -490,41 +489,40 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     const userId = localStorage.getItem("userId");
     if (!userId) return;
 
-    socket.on(`transaction:${userId}`, (msg) => {
+    const handler = (msg) => {
       console.log("Realtime update:", msg);
+      setLocalTransactions((prev) => {
+        let updated = [...prev];
+        if (msg.action === "created") {
+          updated = [msg.data, ...prev];
+        }
+        if (msg.action === "updated") {
+          updated = prev.map((t) =>
+            t._id === msg.data._id ? msg.data : t
+          );
+        }
+        if (msg.action === "deleted") {
+          updated = prev.filter((t) => t._id !== msg.data._id);
+        }
+        return updated;
+      });
+    };
 
-      if (msg.action === "created") {
-        setLocalTransactions((prev) => [msg.data, ...prev]);
-      }
-      if (msg.action === "updated") {
-        setLocalTransactions((prev) =>
-          prev.map((t) => (t._id === msg.data._id ? msg.data : t))
-        );
-      }
-      if (msg.action === "deleted") {
-        setLocalTransactions((prev) =>
-          prev.filter((t) => t._id !== msg.data._id)
-        );
-      }
-    });
-
+    socket.on(`transaction:${userId}`, handler);
     return () => {
-      socket.off(`transaction:${userId}`);
+      socket.off(`transaction:${userId}`, handler);
     };
   }, []);
 
-  // Update transaction
   const handleUpdate = async (data) => {
     if (!editing) return;
     setLoading(true);
     try {
       const updated = await updateTransaction(editing._id, data);
-
       const userId = localStorage.getItem("userId");
       if (userId) {
         socket.emit("transaction:updated", { userId, data: updated });
       }
-
       toast.success("Transaction updated successfully!");
       setEditing(null);
       if (onRefresh) onRefresh();
@@ -536,7 +534,6 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     }
   };
 
-  // Delete transaction
   const handleDelete = (t) => {
     toast(
       ({ closeToast }) => (
@@ -549,12 +546,10 @@ export default function TransactionList({ transactions = [], onRefresh }) {
               onClick={async () => {
                 try {
                   await deleteTransaction(t._id);
-
                   const userId = localStorage.getItem("userId");
                   if (userId) {
                     socket.emit("transaction:deleted", { userId, data: t });
                   }
-
                   toast.success("Deleted successfully!");
                   if (onRefresh) onRefresh();
                 } catch (err) {
@@ -580,7 +575,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     );
   };
 
-  // Filter transactions
+  // Filter
   const filteredTransactions = useMemo(() => {
     return localTransactions.filter((t) => {
       const term = searchTerm.toLowerCase();
@@ -592,18 +587,17 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     });
   }, [localTransactions, searchTerm]);
 
-  // Pagination data
+  // Pagination
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
   const paginatedTransactions = useMemo(() => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     return filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredTransactions, currentPage]);
 
-  // Reset trang khi search thay đổi
+  // Reset page khi search thay đổi
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filteredTransactions]);
-
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
+  }, [searchTerm, filteredTransactions.length]);
 
   return (
     <div className="bg-white shadow-md rounded-xl p-4">
@@ -676,7 +670,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
         </div>
       )}
 
-      {/* Pagination Controls */}
+      {/* Pagination */}
       {totalPages > 1 && (
         <div className="flex justify-center items-center gap-4 mt-4">
           <button
