@@ -314,16 +314,51 @@ export default function BudgetManager() {
   };
 
   // Delete budget
-  const handleDeleteBudget = async (id) => {
-    if (!window.confirm("Are you sure you want to delete this budget?")) return;
-    try {
-      await deleteBudget(id);
-      toast.success("Budget deleted!");
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to delete budget!");
-    }
-  };
+  // const handleDeleteBudget = async (id) => {
+  //   if (!window.confirm("Are you sure you want to delete this budget?")) return;
+  //   try {
+  //     await deleteBudget(id);
+  //     toast.success("Budget deleted!");
+  //   } catch (err) {
+  //     console.error(err);
+  //     toast.error("Failed to delete budget!");
+  //   }
+  // };
+  const handleDeleteBudget = (b) => {
+  toast(
+    ({ closeToast }) => (
+      <div className="flex flex-col">
+        <span>
+          Are you sure to delete <b>{b.category || "this budget"}</b>?
+        </span>
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                await deleteBudget(b._id);
+                toast.success("Budget deleted!");
+              } catch (err) {
+                console.error(err);
+                toast.error("Failed to delete budget!");
+              }
+              closeToast();
+            }}
+            className="bg-red-500 text-white px-3 py-1 rounded"
+          >
+            Delete
+          </button>
+          <button
+            onClick={closeToast}
+            className="bg-gray-300 px-3 py-1 rounded"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+    ),
+    { autoClose: false }
+  );
+};
 
   return (
     <div className="bg-white p-5 rounded-lg shadow mb-6">
