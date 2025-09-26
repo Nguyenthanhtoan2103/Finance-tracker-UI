@@ -475,56 +475,55 @@ export default function TransactionList({ onRefresh }) {
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
-
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
+
   const itemsPerPage = 10;
 
-  // --- Lấy transactions từ backend với paging ---
-  const fetchTransactions = async (page = 1, term = "") => {
-    try {
-      const res = await getTransactions(page, itemsPerPage, term);
-      setTransactionsData(res.data.transactions || []);
-      setTotalPages(res.data.totalPages || 1);
-      setCurrentPage(res.data.currentPage || 1);
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load transactions");
-    }
-  };
-
-  // Load lần đầu và khi page/search thay đổi
   useEffect(() => {
-    fetchTransactions(currentPage, searchTerm);
-  }, [currentPage, searchTerm]);
+    const fetchTransactions = async () => {
+      try {
+        const res = await getTransactions();
+        setTransactionsData(res.data || []);
+      } catch (err) {
+        console.error(err);
+        toast.error("Failed to load transactions");
+      }
+    };
+    fetchTransactions();
+  }, []);
 
-  // Socket realtime
   useEffect(() => {
     const userId = localStorage.getItem("userId");
     if (!userId) return;
 
     const handler = () => {
-      fetchTransactions(currentPage, searchTerm);
+      getTransactions().then(res => setTransactionsData(res.data || []));
     };
 
     socket.on(`transaction:${userId}`, handler);
-    return () => {
-      socket.off(`transaction:${userId}`, handler);
-    };
-  }, [currentPage, searchTerm]);
+    return () => socket.off(`transaction:${userId}`, handler);
+  }, []);
+
+  const filtered = transactionsData.filter((t) =>
+    t.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.category?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    t.payment?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filtered.length / itemsPerPage);
+  const paginatedTransactions = filtered.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
 
   const handleUpdate = async (data) => {
     if (!editing) return;
     setLoading(true);
     try {
       const updated = await updateTransaction(editing._id, data);
-      const userId = localStorage.getItem("userId");
-      if (userId) {
-        socket.emit("transaction:updated", { userId, data: updated });
-      }
       toast.success("Transaction updated successfully!");
       setEditing(null);
-      fetchTransactions(currentPage, searchTerm);
+      getTransactions().then(res => setTransactionsData(res.data || []));
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error(err);
@@ -535,110 +534,82 @@ export default function TransactionList({ onRefresh }) {
   };
 
   const handleDelete = (t) => {
-    toast(
-      ({ closeToast }) => (
-        <div className="flex flex-col">
-          <span>
-            Are you sure to delete <b>{t.description || "transaction"}</b>?
-          </span>
-          <div className="mt-2 flex gap-2">
-            <button
-              onClick={async () => {
-                try {
-                  await deleteTransaction(t._id);
-                  const userId = localStorage.getItem("userId");
-                  if (userId) {
-                    socket.emit("transaction:deleted", { userId, data: t });
-                  }
-                  toast.success("Deleted successfully!");
-                  fetchTransactions(currentPage, searchTerm);
-                  if (onRefresh) onRefresh();
-                } catch (err) {
-                  console.error(err);
-                  toast.error("Delete failed!");
-                }
-                closeToast();
-              }}
-              className="bg-red-500 text-white px-3 py-1 rounded"
-            >
-              Delete
-            </button>
-            <button
-              onClick={closeToast}
-              className="bg-gray-300 px-3 py-1 rounded"
-            >
-              Cancel
-            </button>
-          </div>
+    toast(({ closeToast }) => (
+      <div className="flex flex-col">
+        <span>
+          Are you sure to delete <b>{t.description || "transaction"}</b>?
+        </span>
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={async () => {
+              try {
+                await deleteTransaction(t._id);
+                toast.success("Deleted successfully!");
+                getTransactions().then(res => setTransactionsData(res.data || []));
+                if (onRefresh) onRefresh();
+              } catch (err) {
+                console.error(err);
+                toast.error("Delete failed!");
+              }
+              closeToast();
+            }}
+            className="bg-red-500 text-white px-3 py-1 rounded"
+          >
+            Delete
+          </button>
+          <button
+            onClick={closeToast}
+            className="bg-gray-300 px-3 py-1 rounded"
+          >
+            Cancel
+          </button>
         </div>
-      ),
-      { autoClose: false }
-    );
+      </div>
+    ), { autoClose: false });
   };
-
-  const totalPagesArray = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   return (
     <div className="bg-white shadow-md rounded-xl p-4">
-      {/* Search */}
       <input
         type="text"
         placeholder="Search by description, category, or payment..."
         value={searchTerm}
-        onChange={(e) => setSearchTerm(e.target.value)}
-        className="w-full mb-4 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
+        onChange={(e) => { setSearchTerm(e.target.value); setCurrentPage(1); }}
+        className="w-full mb-4 p-2 border border-gray-300 rounded-lg"
       />
 
-      {/* Table */}
-      {transactionsData.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="text-gray-500 text-sm">No transactions found</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="min-w-full text-sm">
             <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
               <tr>
-                <th className="px-4 py-2 text-left">Description</th>
-                <th className="px-4 py-2 text-left">Category</th>
-                <th className="px-4 py-2 text-left">Type</th>
-                <th className="px-4 py-2 text-left">Amount</th>
-                <th className="px-4 py-2 text-left">Payment</th>
-                <th className="px-4 py-2 text-left">Date</th>
-                <th className="px-4 py-2 text-center">Action</th>
+                <th>Description</th>
+                <th>Category</th>
+                <th>Type</th>
+                <th>Amount</th>
+                <th>Payment</th>
+                <th>Date</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {transactionsData.map((t) => (
-                <tr
-                  key={t._id}
-                  className="border-b last:border-none hover:bg-gray-50"
-                >
-                  <td className="px-4 py-2">{t.description}</td>
-                  <td className="px-4 py-2 text-gray-600">{t.category || "-"}</td>
-                  <td
-                    className={`px-4 py-2 font-medium ${
-                      t.type === "income" ? "text-green-600" : "text-red-500"
-                    }`}
-                  >
+              {paginatedTransactions.map((t) => (
+                <tr key={t._id} className="border-b hover:bg-gray-50">
+                  <td>{t.description}</td>
+                  <td>{t.category || "-"}</td>
+                  <td className={t.type === "income" ? "text-green-600" : "text-red-500"}>
                     {t.type}
                   </td>
-                  <td className="px-4 py-2 font-semibold">
-                    {t.amount?.toLocaleString("vi-VN")} ₫
-                  </td>
-                  <td className="px-4 py-2">{t.payment || "-"}</td>
-                  <td className="px-4 py-2">
-                    {t.date ? new Date(t.date).toLocaleDateString("vi-VN") : "-"}
-                  </td>
-                  <td className="px-4 py-2 text-center flex justify-center gap-2">
-                    <button
-                      onClick={() => setEditing(t)}
-                      className="text-blue-500 hover:text-blue-700 transition"
-                    >
+                  <td>{t.amount?.toLocaleString("vi-VN")} ₫</td>
+                  <td>{t.payment || "-"}</td>
+                  <td>{t.date ? new Date(t.date).toLocaleDateString("vi-VN") : "-"}</td>
+                  <td className="flex gap-2 justify-center">
+                    <button onClick={() => setEditing(t)} className="text-blue-500">
                       <Edit3 size={18} />
                     </button>
-                    <button
-                      onClick={() => handleDelete(t)}
-                      className="text-red-500 hover:text-red-700 transition"
-                    >
+                    <button onClick={() => handleDelete(t)} className="text-red-500">
                       <Trash2 size={18} />
                     </button>
                   </td>
@@ -649,51 +620,23 @@ export default function TransactionList({ onRefresh }) {
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-2 mt-4">
-          <button
-            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-            disabled={currentPage === 1}
-            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-          >
-            Prev
-          </button>
-
-          {totalPagesArray.map((p) => (
-            <button
-              key={p}
-              onClick={() => setCurrentPage(p)}
-              className={`px-3 py-1 rounded ${
-                p === currentPage ? "bg-blue-500 text-white" : "bg-gray-200"
-              }`}
-            >
-              {p}
-            </button>
+        <div className="flex justify-center gap-2 mt-4">
+          <button onClick={() => setCurrentPage(p => Math.max(p - 1, 1))} disabled={currentPage === 1}>Prev</button>
+          {[...Array(totalPages)].map((_, i) => (
+            <button key={i} onClick={() => setCurrentPage(i + 1)} className={currentPage === i + 1 ? "bg-blue-500 text-white" : ""}>{i + 1}</button>
           ))}
-
-          <button
-            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-            disabled={currentPage === totalPages}
-            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
-          >
-            Next
-          </button>
+          <button onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}>Next</button>
         </div>
       )}
 
-      {/* Modal edit */}
       {editing && (
-        <EditTransactionModal
-          transaction={editing}
-          onClose={() => setEditing(null)}
-          onSubmit={handleUpdate}
-          loading={loading}
-        />
+        <EditTransactionModal transaction={editing} onClose={() => setEditing(null)} onSubmit={handleUpdate} loading={loading} />
       )}
     </div>
   );
 }
+
 
 
 
