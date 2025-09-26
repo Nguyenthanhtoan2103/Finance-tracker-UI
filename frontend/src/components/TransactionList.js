@@ -211,8 +211,8 @@
 //     </div>
 //   );
 // }
-import React, { useEffect, useState } from "react";
-import { Trash2, Edit3 } from "lucide-react";
+import React, { useEffect, useState, useMemo } from "react";
+import { Edit3, Trash2 } from "lucide-react";
 import { toast } from "react-toastify";
 import EditTransactionModal from "./EditTransactionModal";
 import { updateTransaction, deleteTransaction } from "../services/api";
@@ -224,35 +224,27 @@ export default function TransactionList({ transactions = [], onRefresh }) {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
-  // Paging
+  // --- Paging ---
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Load dữ liệu ban đầu từ props và sort desc
+  // --- Init từ props (sort desc theo date) ---
   useEffect(() => {
-    if (Array.isArray(transactions)) {
-      setLocalTransactions(
-        [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date))
-      );
-    }
+    setLocalTransactions(
+      [...transactions].sort((a, b) => new Date(b.date) - new Date(a.date))
+    );
   }, [transactions]);
 
-  // Socket realtime
+  // --- Socket realtime ---
   useEffect(() => {
-    const userId = localStorage.getItem("userId");
-    if (!userId || !socket) return;
-
-    console.log("🔌 TransactionList mounted, socket:", socket.id);
-
     const handler = (msg) => {
-      console.log("📩 TransactionList nhận realtime:", msg);
+      console.log("📩 TransactionList realtime:", msg);
 
       if (msg.action === "created") {
         setLocalTransactions((prev) =>
           [msg.data, ...prev].sort((a, b) => new Date(b.date) - new Date(a.date))
         );
       }
-
       if (msg.action === "updated") {
         setLocalTransactions((prev) =>
           prev
@@ -260,7 +252,6 @@ export default function TransactionList({ transactions = [], onRefresh }) {
             .sort((a, b) => new Date(b.date) - new Date(a.date))
         );
       }
-
       if (msg.action === "deleted") {
         setLocalTransactions((prev) =>
           prev.filter((t) => t._id !== msg.data._id)
@@ -268,34 +259,28 @@ export default function TransactionList({ transactions = [], onRefresh }) {
       }
     };
 
-    socket.on(`transaction:${userId}`, handler);
-    return () => socket.off(`transaction:${userId}`, handler);
+    socket.on("transaction:update", handler);
+    return () => socket.off("transaction:update", handler);
   }, []);
 
-  // Update transaction
+  // --- Update transaction ---
   const handleUpdate = async (data) => {
     if (!editing) return;
     setLoading(true);
     try {
-      const updated = await updateTransaction(editing._id, data);
-
-      const userId = localStorage.getItem("userId");
-      if (userId) {
-        socket.emit("transaction:updated", { userId, data: updated });
-      }
-
-      toast.success("Transaction updated successfully!");
+      await updateTransaction(editing._id, data);
+      toast.success("Transaction updated!");
       setEditing(null);
       if (onRefresh) onRefresh();
     } catch (err) {
       console.error(err);
-      toast.error("Failed to update transaction");
+      toast.error("Update failed!");
     } finally {
       setLoading(false);
     }
   };
 
-  // Delete transaction
+  // --- Delete transaction ---
   const handleDelete = (t) => {
     toast(
       ({ closeToast }) => (
@@ -308,12 +293,6 @@ export default function TransactionList({ transactions = [], onRefresh }) {
               onClick={async () => {
                 try {
                   await deleteTransaction(t._id);
-
-                  const userId = localStorage.getItem("userId");
-                  if (userId) {
-                    socket.emit("transaction:deleted", { userId, data: t });
-                  }
-
                   toast.success("Deleted successfully!");
                   if (onRefresh) onRefresh();
                 } catch (err) {
@@ -339,27 +318,29 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     );
   };
 
-  // Filter transactions
-  const filteredTransactions = localTransactions.filter((t) => {
+  // --- Search filter ---
+  const filteredTransactions = useMemo(() => {
     const term = searchTerm.toLowerCase();
-    return (
-      t.description?.toLowerCase().includes(term) ||
-      t.category?.toLowerCase().includes(term) ||
-      t.payment?.toLowerCase().includes(term)
+    return localTransactions.filter(
+      (t) =>
+        (t.description && t.description.toLowerCase().includes(term)) ||
+        (t.category && t.category.toLowerCase().includes(term)) ||
+        (t.payment && t.payment.toLowerCase().includes(term))
     );
-  });
+  }, [localTransactions, searchTerm]);
+
+  // --- Pagination ---
+  const paginatedTransactions = useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    return filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
+  }, [filteredTransactions, currentPage]);
+
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
 
   // Reset page khi search thay đổi
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm]);
-
-  // Pagination
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
-  const paginatedTransactions = filteredTransactions.slice(
-    (currentPage - 1) * itemsPerPage,
-    currentPage * itemsPerPage
-  );
+  }, [searchTerm, filteredTransactions]);
 
   return (
     <div className="bg-white shadow-md rounded-xl p-4">
@@ -463,7 +444,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
         </div>
       )}
 
-      {/* Modal edit */}
+      {/* Modal Edit */}
       {editing && (
         <EditTransactionModal
           transaction={editing}
