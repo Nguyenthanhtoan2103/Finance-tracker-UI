@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+// import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Navbar from "./components/Navbar";
 import Dashboard from "./pages/Dashboard";
@@ -7,7 +7,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Budget from "./pages/Budgets";
 import { ToastContainer } from "react-toastify";
-import { AuthProvider } from "./context/AuthContext"; 
+import { AuthProvider } from "./context/AuthContext";
 import { socket, connectSocket, disconnectSocket } from "./services/socket";
 
 function ProtectedRoute({ children }) {
@@ -58,7 +58,7 @@ export default function App() {
 
           {/* Protected routes */}
           <Route
-            path="/"
+            path="/dashboard"
             element={
               <ProtectedRoute>
                 <Dashboard />
@@ -82,7 +82,8 @@ export default function App() {
             }
           />
 
-          {/* Redirect all other paths */}
+          {/* Default: luôn chuyển về login */}
+          <Route path="/" element={<Navigate to="/login" replace />} />
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
