@@ -1,22 +1,30 @@
-import React, { useState, useEffect } from "react";
+// import React, { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
 import { socket } from "../services/socket";
 
 export default function ChartSummary({ transactions: initialTransactions = [] }) {
   const [transactions, setTransactions] = useState(initialTransactions);
 
+  // đồng bộ khi props initialTransactions thay đổi (ví dụ sau khi fetch API)
   useEffect(() => {
-    // Khi component mount → lắng nghe sự kiện từ socket
-    socket.on("transaction:new", ({ transaction }) => {
-      setTransactions((prev) => [...prev, transaction]); // append transaction mới
-    });
+    setTransactions(initialTransactions);
+  }, [initialTransactions]);
+
+  // lắng nghe socket event
+  useEffect(() => {
+    const handleNewTransaction = ({ transaction }) => {
+      console.log("📩 ChartSummary nhận transaction:", transaction);
+      setTransactions((prev) => [...prev, transaction]);
+    };
+
+    socket.on("transaction:new", handleNewTransaction);
 
     return () => {
-      // cleanup để tránh bị lặp listener khi re-render
-      socket.off("transaction:new");
+      socket.off("transaction:new", handleNewTransaction);
     };
   }, []);
 
+  // tính toán summary
   const income = transactions
     .filter((t) => t.type === "income")
     .reduce((a, b) => a + b.amount, 0);
