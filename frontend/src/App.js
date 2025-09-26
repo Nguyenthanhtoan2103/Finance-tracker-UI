@@ -7,7 +7,7 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Budget from "./pages/Budgets";
 import { ToastContainer } from "react-toastify";
-import { AuthProvider } from "./context/AuthContext";
+import { AuthProvider } from "./context/AuthContext"; 
 import { socket, connectSocket, disconnectSocket } from "./services/socket";
 
 function ProtectedRoute({ children }) {
@@ -58,7 +58,7 @@ export default function App() {
 
           {/* Protected routes */}
           <Route
-            path="/dashboard"
+            path="/"
             element={
               <ProtectedRoute>
                 <Dashboard />
@@ -82,8 +82,7 @@ export default function App() {
             }
           />
 
-          {/* Default: luôn chuyển về login */}
-          <Route path="/" element={<Navigate to="/login" replace />} />
+          {/* Redirect all other paths */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
       </Router>
