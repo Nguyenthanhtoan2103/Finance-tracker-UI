@@ -62,13 +62,7 @@ export default function Dashboard() {
             {/* Top 5 Transactions */}
 
             {/* Transaction List */}
-            <div className="bg-white p-5 rounded-lg shadow">
-              <h2 className="text-xl font-semibold mb-4">Transactions</h2>
-              <TransactionList
-                transactions={transactions}
-                onDelete={handleDelete}
-              />
-            </div>
+            
           </div>
 
           {/* Right side: Chart */}
@@ -79,6 +73,13 @@ export default function Dashboard() {
           </div>
         </div>
       </div>
+      <div className="bg-white p-5 rounded-lg shadow">
+              <h2 className="text-xl font-semibold mb-4">Transactions</h2>
+              <TransactionList
+                transactions={transactions}
+                onDelete={handleDelete}
+              />
+            </div>
     </div>
   );
 }
