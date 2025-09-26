@@ -226,9 +226,9 @@ export default function TransactionList({ transactions = [], onRefresh }) {
 
   // Paging
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 10; // số item mỗi trang
+  const itemsPerPage = 10;
 
-  // Đồng bộ prop -> state
+  // Đồng bộ prop -> state (initial load)
   useEffect(() => {
     setLocalTransactions(transactions);
   }, [transactions]);
@@ -241,19 +241,18 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     socket.on(`transaction:${userId}`, (msg) => {
       console.log("Realtime update:", msg);
 
-      if (msg.action === "created") {
-        setLocalTransactions((prev) => [msg.data, ...prev]);
-      }
-      if (msg.action === "updated") {
-        setLocalTransactions((prev) =>
-          prev.map((t) => (t._id === msg.data._id ? msg.data : t))
-        );
-      }
-      if (msg.action === "deleted") {
-        setLocalTransactions((prev) =>
-          prev.filter((t) => t._id !== msg.data._id)
-        );
-      }
+      setLocalTransactions((prev) => {
+        if (msg.action === "created") {
+          return [msg.data, ...prev];
+        }
+        if (msg.action === "updated") {
+          return prev.map((t) => (t._id === msg.data._id ? msg.data : t));
+        }
+        if (msg.action === "deleted") {
+          return prev.filter((t) => t._id !== msg.data._id);
+        }
+        return prev;
+      });
     });
 
     return () => {
@@ -275,7 +274,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
 
       toast.success("Transaction updated successfully!");
       setEditing(null);
-      if (onRefresh) onRefresh();
+      if (onRefresh) onRefresh(); // optional refresh
     } catch (err) {
       console.error(err);
       toast.error("Failed to update transaction");
@@ -328,16 +327,18 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     );
   };
 
-  // Filter transactions
+  // Filter + sort desc
   const filteredTransactions = useMemo(() => {
-    return localTransactions.filter((t) => {
-      const term = searchTerm.toLowerCase();
-      return (
-        (t.description && t.description.toLowerCase().includes(term)) ||
-        (t.category && t.category.toLowerCase().includes(term)) ||
-        (t.payment && t.payment.toLowerCase().includes(term))
-      );
-    });
+    const term = searchTerm.toLowerCase();
+    return localTransactions
+      .filter((t) => {
+        return (
+          (t.description && t.description.toLowerCase().includes(term)) ||
+          (t.category && t.category.toLowerCase().includes(term)) ||
+          (t.payment && t.payment.toLowerCase().includes(term))
+        );
+      })
+      .sort((a, b) => new Date(b.date) - new Date(a.date)); // sort desc theo date
   }, [localTransactions, searchTerm]);
 
   // Pagination
@@ -346,10 +347,10 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     return filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredTransactions, currentPage]);
 
-  // Reset page khi search thay đổi
+  // Reset page khi search thay đổi (KHÔNG reset khi socket update)
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filteredTransactions]);
+  }, [searchTerm]);
 
   const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
 
