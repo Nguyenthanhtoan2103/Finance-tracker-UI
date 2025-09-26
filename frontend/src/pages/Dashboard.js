@@ -49,7 +49,7 @@ export default function Dashboard() {
         {/* Header */}
         <header className="text-center">
           <h1 className="text-4xl font-extrabold text-blue-700 drop-shadow-sm">
-            💰 Dashboard
+            Dashboard
           </h1>
           <p className="text-gray-600 mt-2">
             Track your income and expenses effectively
@@ -68,18 +68,12 @@ export default function Dashboard() {
             </div>
 
             <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition">
-              <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-                Top 5 Transactions
-              </h2>
               <Top5Transactions transactions={transactions} />
             </div>
           </div>
 
           {/* Right side: Chart */}
           <div className="lg:col-span-2 bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition">
-            <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
-              📊 Summary
-            </h2>
             <ChartSummary transactions={transactions} />
           </div>
         </div>
