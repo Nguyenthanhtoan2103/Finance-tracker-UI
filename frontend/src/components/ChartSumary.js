@@ -1,7 +1,22 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
+import { socket } from "../services/socket";
 
-export default function ChartSummary({ transactions = [] }) {
+export default function ChartSummary({ transactions: initialTransactions = [] }) {
+  const [transactions, setTransactions] = useState(initialTransactions);
+
+  useEffect(() => {
+    // Khi component mount → lắng nghe sự kiện từ socket
+    socket.on("transaction:new", ({ transaction }) => {
+      setTransactions((prev) => [...prev, transaction]); // append transaction mới
+    });
+
+    return () => {
+      // cleanup để tránh bị lặp listener khi re-render
+      socket.off("transaction:new");
+    };
+  }, []);
+
   const income = transactions
     .filter((t) => t.type === "income")
     .reduce((a, b) => a + b.amount, 0);
@@ -15,7 +30,7 @@ export default function ChartSummary({ transactions = [] }) {
     { name: "Expense", value: expense },
   ];
 
-  const COLORS = ["#10B981", "#EF4444"]; // xanh lá, đỏ
+  const COLORS = ["#10B981", "#EF4444"];
 
   return (
     <div className="bg-white shadow rounded-lg p-6">
