@@ -467,24 +467,36 @@ import React, { useState, useEffect } from "react";
 import { Trash2, Edit3 } from "lucide-react";
 import { toast } from "react-toastify";
 import EditTransactionModal from "./EditTransactionModal";
-import { updateTransaction, deleteTransaction } from "../services/api";
+import { updateTransaction, deleteTransaction, getTransactions } from "../services/api";
 import { socket } from "../services/socket";
 
-export default function TransactionList({ transactions = [], onRefresh }) {
-  const [transactionsData, setTransactionsData] = useState(transactions);
-  const [filteredTransactions, setFilteredTransactions] = useState([]);
-  const [paginatedTransactions, setPaginatedTransactions] = useState([]);
+export default function TransactionList({ onRefresh }) {
+  const [transactionsData, setTransactionsData] = useState([]);
   const [editing, setEditing] = useState(null);
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
 
   const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
-  // Đồng bộ dữ liệu ban đầu
+  // --- Lấy transactions từ backend với paging
+  const fetchTransactions = async (page = 1) => {
+    try {
+      const data = await getTransactions(page, itemsPerPage, searchTerm);
+      setTransactionsData(data.transactions);
+      setTotalPages(data.totalPages);
+      setCurrentPage(data.currentPage);
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load transactions");
+    }
+  };
+
+  // Load lần đầu
   useEffect(() => {
-    setTransactionsData(transactions);
-  }, [transactions]);
+    fetchTransactions(currentPage);
+  }, [currentPage, searchTerm]);
 
   // Socket realtime
   useEffect(() => {
@@ -492,50 +504,14 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     if (!userId) return;
 
     const handler = (msg) => {
-      setTransactionsData((prev) => {
-        let updated = [...prev];
-        if (msg.action === "created") {
-          updated = [msg.data, ...prev];
-        } else if (msg.action === "updated") {
-          updated = prev.map((t) =>
-            t._id === msg.data._id ? msg.data : t
-          );
-        } else if (msg.action === "deleted") {
-          updated = prev.filter((t) => t._id !== msg.data._id);
-        }
-        return updated;
-      });
+      fetchTransactions(currentPage); // Reload page hiện tại khi có thay đổi
     };
 
     socket.on(`transaction:${userId}`, handler);
     return () => {
       socket.off(`transaction:${userId}`, handler);
     };
-  }, []);
-
-  // Filter dữ liệu
-  useEffect(() => {
-    const term = searchTerm.toLowerCase();
-    const filtered = transactionsData.filter((t) => {
-      return (
-        (t.description && t.description.toLowerCase().includes(term)) ||
-        (t.category && t.category.toLowerCase().includes(term)) ||
-        (t.payment && t.payment.toLowerCase().includes(term))
-      );
-    });
-    setFilteredTransactions(filtered);
-    setCurrentPage(1); // reset page mỗi lần filter thay đổi
-  }, [transactionsData, searchTerm]);
-
-  // Pagination dữ liệu
-  useEffect(() => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const paginated = filteredTransactions.slice(
-      startIndex,
-      startIndex + itemsPerPage
-    );
-    setPaginatedTransactions(paginated);
-  }, [filteredTransactions, currentPage]);
+  }, [currentPage]);
 
   const handleUpdate = async (data) => {
     if (!editing) return;
@@ -548,7 +524,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
       }
       toast.success("Transaction updated successfully!");
       setEditing(null);
-      if (onRefresh) onRefresh();
+      fetchTransactions(currentPage);
     } catch (err) {
       console.error(err);
       toast.error("Failed to update transaction");
@@ -574,7 +550,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
                     socket.emit("transaction:deleted", { userId, data: t });
                   }
                   toast.success("Deleted successfully!");
-                  if (onRefresh) onRefresh();
+                  fetchTransactions(currentPage);
                 } catch (err) {
                   console.error(err);
                   toast.error("Delete failed!");
@@ -598,8 +574,6 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     );
   };
 
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage);
-
   return (
     <div className="bg-white shadow-md rounded-xl p-4">
       {/* Search */}
@@ -612,7 +586,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
       />
 
       {/* Table */}
-      {filteredTransactions.length === 0 ? (
+      {transactionsData.length === 0 ? (
         <div className="text-gray-500 text-sm">No transactions found</div>
       ) : (
         <div className="overflow-x-auto">
@@ -629,7 +603,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
               </tr>
             </thead>
             <tbody>
-              {paginatedTransactions.map((t) => (
+              {transactionsData.map((t) => (
                 <tr
                   key={t._id}
                   className="border-b last:border-none hover:bg-gray-50"
@@ -710,5 +684,6 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     </div>
   );
 }
+
 
 
