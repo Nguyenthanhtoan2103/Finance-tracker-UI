@@ -479,7 +479,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 10;
 
-  // Đồng bộ prop -> state
+  // Đồng bộ dữ liệu ban đầu
   useEffect(() => {
     setLocalTransactions(transactions);
   }, [transactions]);
@@ -490,18 +490,15 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     if (!userId) return;
 
     const handler = (msg) => {
-      console.log("Realtime update:", msg);
       setLocalTransactions((prev) => {
         let updated = [...prev];
         if (msg.action === "created") {
           updated = [msg.data, ...prev];
-        }
-        if (msg.action === "updated") {
+        } else if (msg.action === "updated") {
           updated = prev.map((t) =>
             t._id === msg.data._id ? msg.data : t
           );
-        }
-        if (msg.action === "deleted") {
+        } else if (msg.action === "deleted") {
           updated = prev.filter((t) => t._id !== msg.data._id);
         }
         return updated;
@@ -514,6 +511,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     };
   }, []);
 
+  // Update transaction
   const handleUpdate = async (data) => {
     if (!editing) return;
     setLoading(true);
@@ -534,6 +532,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     }
   };
 
+  // Delete transaction
   const handleDelete = (t) => {
     toast(
       ({ closeToast }) => (
@@ -575,7 +574,7 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     );
   };
 
-  // Filter
+  // Filter dữ liệu
   const filteredTransactions = useMemo(() => {
     return localTransactions.filter((t) => {
       const term = searchTerm.toLowerCase();
@@ -594,10 +593,10 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     return filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredTransactions, currentPage]);
 
-  // Reset page khi search thay đổi
+  // Reset page khi dữ liệu hoặc search thay đổi
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, filteredTransactions.length]);
+  }, [filteredTransactions.length, searchTerm]);
 
   return (
     <div className="bg-white shadow-md rounded-xl p-4">
@@ -709,3 +708,4 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     </div>
   );
 }
+
