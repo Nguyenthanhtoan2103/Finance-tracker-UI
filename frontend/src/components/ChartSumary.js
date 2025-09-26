@@ -97,16 +97,16 @@ export default function ChartSummary() {
 
   // Lấy dữ liệu lần đầu
   useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const res = await getTransactions();
-        setTransactions(res.data || []);
-      } catch (err) {
-        console.error("❌ Lỗi load transactions:", err);
-      }
-    };
-    fetchData();
-  }, []);
+  const fetchData = async () => {
+    try {
+      const res = await getTransactions(1, 1000); // Lấy nhiều dữ liệu để tính toán chart
+      setTransactions(res.data.transactions || []);
+    } catch (err) {
+      console.error("❌ Lỗi load transactions:", err);
+    }
+  };
+  fetchData();
+}, []);
 
   // Lắng nghe socket realtime
   useEffect(() => {

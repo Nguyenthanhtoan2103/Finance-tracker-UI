@@ -18,8 +18,9 @@ export const loginUser = (data) => API.post("/auth/login", data);
 
 // Transactions
 // export const getTransactions = () => API.get("/transactions");
-export const getTransactions = (page = 1, limit = 10, search = "") =>
-  API.get(`/transactions?page=${page}&limit=${limit}&search=${search}`);
+export const getTransactions = (page = 1, limit = 10, searchTerm = "") =>
+  API.get(`/transactions?page=${page}&limit=${limit}&search=${searchTerm}`);
+
 
 export const getTop5Transactions = () => API.get("/transactions/top5");
 export const createTransaction = (data) => API.post("/transactions", data);

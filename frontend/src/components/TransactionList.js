@@ -480,35 +480,38 @@ export default function TransactionList({ onRefresh }) {
   const [totalPages, setTotalPages] = useState(1);
   const itemsPerPage = 10;
 
-  const fetchTransactions = async (page = 1) => {
+  // --- Lấy transactions từ backend với paging ---
+  const fetchTransactions = async (page = 1, term = "") => {
     try {
-      const res = await getTransactions(page, itemsPerPage, searchTerm);
-      setTransactionsData(res.data.transactions);
-      setTotalPages(res.data.totalPages);
-      setCurrentPage(res.data.currentPage);
+      const res = await getTransactions(page, itemsPerPage, term);
+      setTransactionsData(res.data.transactions || []);
+      setTotalPages(res.data.totalPages || 1);
+      setCurrentPage(res.data.currentPage || 1);
     } catch (err) {
       console.error(err);
       toast.error("Failed to load transactions");
     }
   };
 
+  // Load lần đầu và khi page/search thay đổi
   useEffect(() => {
-    fetchTransactions(currentPage);
+    fetchTransactions(currentPage, searchTerm);
   }, [currentPage, searchTerm]);
 
+  // Socket realtime
   useEffect(() => {
     const userId = localStorage.getItem("userId");
     if (!userId) return;
 
     const handler = () => {
-      fetchTransactions(currentPage);
+      fetchTransactions(currentPage, searchTerm);
     };
 
     socket.on(`transaction:${userId}`, handler);
     return () => {
       socket.off(`transaction:${userId}`, handler);
     };
-  }, [currentPage]);
+  }, [currentPage, searchTerm]);
 
   const handleUpdate = async (data) => {
     if (!editing) return;
@@ -521,7 +524,8 @@ export default function TransactionList({ onRefresh }) {
       }
       toast.success("Transaction updated successfully!");
       setEditing(null);
-      fetchTransactions(currentPage);
+      fetchTransactions(currentPage, searchTerm);
+      if (onRefresh) onRefresh();
     } catch (err) {
       console.error(err);
       toast.error("Failed to update transaction");
@@ -547,7 +551,8 @@ export default function TransactionList({ onRefresh }) {
                     socket.emit("transaction:deleted", { userId, data: t });
                   }
                   toast.success("Deleted successfully!");
-                  fetchTransactions(currentPage);
+                  fetchTransactions(currentPage, searchTerm);
+                  if (onRefresh) onRefresh();
                 } catch (err) {
                   console.error(err);
                   toast.error("Delete failed!");
@@ -571,8 +576,11 @@ export default function TransactionList({ onRefresh }) {
     );
   };
 
+  const totalPagesArray = Array.from({ length: totalPages }, (_, i) => i + 1);
+
   return (
     <div className="bg-white shadow-md rounded-xl p-4">
+      {/* Search */}
       <input
         type="text"
         placeholder="Search by description, category, or payment..."
@@ -581,6 +589,7 @@ export default function TransactionList({ onRefresh }) {
         className="w-full mb-4 p-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
       />
 
+      {/* Table */}
       {transactionsData.length === 0 ? (
         <div className="text-gray-500 text-sm">No transactions found</div>
       ) : (
@@ -588,31 +597,48 @@ export default function TransactionList({ onRefresh }) {
           <table className="min-w-full text-sm">
             <thead className="bg-gray-100 text-gray-700 uppercase text-xs">
               <tr>
-                <th>Description</th>
-                <th>Category</th>
-                <th>Type</th>
-                <th>Amount</th>
-                <th>Payment</th>
-                <th>Date</th>
-                <th>Action</th>
+                <th className="px-4 py-2 text-left">Description</th>
+                <th className="px-4 py-2 text-left">Category</th>
+                <th className="px-4 py-2 text-left">Type</th>
+                <th className="px-4 py-2 text-left">Amount</th>
+                <th className="px-4 py-2 text-left">Payment</th>
+                <th className="px-4 py-2 text-left">Date</th>
+                <th className="px-4 py-2 text-center">Action</th>
               </tr>
             </thead>
             <tbody>
               {transactionsData.map((t) => (
-                <tr key={t._id} className="border-b hover:bg-gray-50">
-                  <td>{t.description}</td>
-                  <td>{t.category || "-"}</td>
-                  <td className={t.type === "income" ? "text-green-600" : "text-red-600"}>
+                <tr
+                  key={t._id}
+                  className="border-b last:border-none hover:bg-gray-50"
+                >
+                  <td className="px-4 py-2">{t.description}</td>
+                  <td className="px-4 py-2 text-gray-600">{t.category || "-"}</td>
+                  <td
+                    className={`px-4 py-2 font-medium ${
+                      t.type === "income" ? "text-green-600" : "text-red-500"
+                    }`}
+                  >
                     {t.type}
                   </td>
-                  <td>{t.amount?.toLocaleString("vi-VN")} ₫</td>
-                  <td>{t.payment || "-"}</td>
-                  <td>{t.date ? new Date(t.date).toLocaleDateString("vi-VN") : "-"}</td>
-                  <td className="flex justify-center gap-2">
-                    <button onClick={() => setEditing(t)} className="text-blue-500 hover:text-blue-700">
+                  <td className="px-4 py-2 font-semibold">
+                    {t.amount?.toLocaleString("vi-VN")} ₫
+                  </td>
+                  <td className="px-4 py-2">{t.payment || "-"}</td>
+                  <td className="px-4 py-2">
+                    {t.date ? new Date(t.date).toLocaleDateString("vi-VN") : "-"}
+                  </td>
+                  <td className="px-4 py-2 text-center flex justify-center gap-2">
+                    <button
+                      onClick={() => setEditing(t)}
+                      className="text-blue-500 hover:text-blue-700 transition"
+                    >
                       <Edit3 size={18} />
                     </button>
-                    <button onClick={() => handleDelete(t)} className="text-red-500 hover:text-red-700">
+                    <button
+                      onClick={() => handleDelete(t)}
+                      className="text-red-500 hover:text-red-700 transition"
+                    >
                       <Trash2 size={18} />
                     </button>
                   </td>
@@ -623,18 +649,40 @@ export default function TransactionList({ onRefresh }) {
         </div>
       )}
 
+      {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex justify-center items-center gap-4 mt-4">
-          <button disabled={currentPage === 1} onClick={() => setCurrentPage(currentPage - 1)} className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50">
+        <div className="flex justify-center items-center gap-2 mt-4">
+          <button
+            onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+            disabled={currentPage === 1}
+            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+          >
             Prev
           </button>
-          <span>Page {currentPage} of {totalPages}</span>
-          <button disabled={currentPage === totalPages} onClick={() => setCurrentPage(currentPage + 1)} className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50">
+
+          {totalPagesArray.map((p) => (
+            <button
+              key={p}
+              onClick={() => setCurrentPage(p)}
+              className={`px-3 py-1 rounded ${
+                p === currentPage ? "bg-blue-500 text-white" : "bg-gray-200"
+              }`}
+            >
+              {p}
+            </button>
+          ))}
+
+          <button
+            onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+            disabled={currentPage === totalPages}
+            className="px-3 py-1 bg-gray-200 rounded disabled:opacity-50"
+          >
             Next
           </button>
         </div>
       )}
 
+      {/* Modal edit */}
       {editing && (
         <EditTransactionModal
           transaction={editing}
