@@ -35,38 +35,84 @@ export default function Home() {
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto">
-      {/* Header */}
-      <h1 className="text-3xl font-bold text-blue-700 mb-8 text-center">
+    // <div className="p-6 max-w-6xl mx-auto">
+    //   {/* Header */}
+    //   <h1 className="text-3xl font-bold text-blue-700 mb-8 text-center">
+    //     💰 Finance Tracker
+    //   </h1>
+
+    //   {/* Content Layout */}
+    //   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    //     {/* Left: Form + List */}
+    //     <div className="lg:col-span-1 space-y-6">
+    //       <div className="bg-white p-4 rounded-lg shadow">
+    //         <h2 className="text-xl font-semibold mb-4">Add Transaction</h2>
+    //         <TransactionForm addTransaction={addTransaction} />
+    //       </div>
+
+    //       <div className="bg-white p-4 rounded-lg shadow">
+    //         <h2 className="text-xl font-semibold mb-4">Transactions</h2>
+    //         <TransactionList
+    //           transactions={transactions}
+    //           deleteTransaction={removeTransaction}
+    //         />
+    //       </div>
+    //     </div>
+
+    //     {/* Right: Dashboard */}
+    //     <div className="lg:col-span-2">
+    //       <div className="bg-white p-4 rounded-lg shadow h-full">
+    //         <h2 className="text-xl font-semibold mb-4">Dashboard</h2>
+    //         <Dashboard transactions={transactions} />
+    //       </div>
+    //     </div>
+    //   </div>
+    // </div>
+    <div className="min-h-screen bg-gray-50 p-6">
+  <div className="max-w-7xl mx-auto space-y-8">
+    {/* Header */}
+    <header className="text-center">
+      <h1 className="text-4xl font-extrabold text-blue-700 drop-shadow-sm">
         💰 Finance Tracker
       </h1>
+      <p className="text-gray-600 mt-2">
+        Manage your income & expenses with ease
+      </p>
+    </header>
 
-      {/* Content Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left: Form + List */}
-        <div className="lg:col-span-1 space-y-6">
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Add Transaction</h2>
-            <TransactionForm addTransaction={addTransaction} />
-          </div>
-
-          <div className="bg-white p-4 rounded-lg shadow">
-            <h2 className="text-xl font-semibold mb-4">Transactions</h2>
-            <TransactionList
-              transactions={transactions}
-              deleteTransaction={removeTransaction}
-            />
-          </div>
+    {/* Content Layout */}
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      {/* Left: Form + List */}
+      <div className="lg:col-span-1 space-y-6">
+        <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition">
+          <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            Add Transaction
+          </h2>
+          <TransactionForm addTransaction={addTransaction} />
         </div>
 
-        {/* Right: Dashboard */}
-        <div className="lg:col-span-2">
-          <div className="bg-white p-4 rounded-lg shadow h-full">
-            <h2 className="text-xl font-semibold mb-4">Dashboard</h2>
-            <Dashboard transactions={transactions} />
-          </div>
+        <div className="bg-white rounded-2xl shadow-lg p-6 hover:shadow-xl transition">
+          <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            Transactions
+          </h2>
+          <TransactionList
+            transactions={transactions}
+            deleteTransaction={removeTransaction}
+          />
+        </div>
+      </div>
+
+      {/* Right: Dashboard */}
+      <div className="lg:col-span-2">
+        <div className="bg-white rounded-2xl shadow-lg p-6 h-full hover:shadow-xl transition">
+          <h2 className="text-lg font-semibold text-gray-700 mb-4 flex items-center gap-2">
+            Dashboard
+          </h2>
+          <Dashboard transactions={transactions} />
         </div>
       </div>
     </div>
+  </div>
+</div>
   );
 }
