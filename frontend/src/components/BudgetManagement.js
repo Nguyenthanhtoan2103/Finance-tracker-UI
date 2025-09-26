@@ -324,18 +324,18 @@ export default function BudgetManager() {
   //     toast.error("Failed to delete budget!");
   //   }
   // };
-  const handleDeleteBudget = (b) => {
+  const handleDeleteBudget = (id) => {
   toast(
     ({ closeToast }) => (
       <div className="flex flex-col">
         <span>
-          Are you sure to delete <b>{b.category || "this budget"}</b>?
+          Are you sure to delete <b>{"this budget"}</b>?
         </span>
         <div className="mt-2 flex gap-2">
           <button
             onClick={async () => {
               try {
-                await deleteBudget(b._id);
+                await deleteBudget(id);
                 toast.success("Budget deleted!");
               } catch (err) {
                 console.error(err);
