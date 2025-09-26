@@ -511,7 +511,6 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     };
   }, []);
 
-  // Update transaction
   const handleUpdate = async (data) => {
     if (!editing) return;
     setLoading(true);
@@ -532,7 +531,6 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     }
   };
 
-  // Delete transaction
   const handleDelete = (t) => {
     toast(
       ({ closeToast }) => (
@@ -593,10 +591,10 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     return filteredTransactions.slice(startIndex, startIndex + itemsPerPage);
   }, [filteredTransactions, currentPage]);
 
-  // Reset page khi dữ liệu hoặc search thay đổi
+  // Reset page khi dữ liệu thay đổi
   useEffect(() => {
     setCurrentPage(1);
-  }, [filteredTransactions.length, searchTerm]);
+  }, [filteredTransactions]);
 
   return (
     <div className="bg-white shadow-md rounded-xl p-4">
@@ -708,4 +706,5 @@ export default function TransactionList({ transactions = [], onRefresh }) {
     </div>
   );
 }
+
 
